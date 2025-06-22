@@ -1,0 +1,62 @@
+[
+  {
+    "id": "dept-001",
+    "name": "Engineering",
+    "description": "Software development and technical operations",
+    "manager": "John Doe",
+    "employeeCount": 15,
+    "budget": 2500000,
+    "createdAt": "2022-01-01T00:00:00.000Z",
+    "updatedAt": "2022-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-002",
+    "name": "Human Resources",
+    "description": "Employee relations and organizational development",
+    "manager": "Mike Johnson",
+    "employeeCount": 5,
+    "budget": 800000,
+    "createdAt": "2022-01-01T00:00:00.000Z",
+    "updatedAt": "2022-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-003",
+    "name": "Marketing",
+    "description": "Brand promotion and customer acquisition",
+    "manager": "Sarah Wilson",
+    "employeeCount": 8,
+    "budget": 1200000,
+    "createdAt": "2022-01-01T00:00:00.000Z",
+    "updatedAt": "2022-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-004",
+    "name": "Product",
+    "description": "Product strategy and management",
+    "manager": "Jane Smith",
+    "employeeCount": 12,
+    "budget": 1800000,
+    "createdAt": "2022-01-01T00:00:00.000Z",
+    "updatedAt": "2022-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-005",
+    "name": "Finance",
+    "description": "Financial planning and accounting",
+    "manager": "Robert Brown",
+    "employeeCount": 6,
+    "budget": 900000,
+    "createdAt": "2022-01-01T00:00:00.000Z",
+    "updatedAt": "2022-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-006",
+    "name": "Design",
+    "description": "User experience and visual design",
+    "manager": "Emily Davis",
+    "employeeCount": 4,
+    "budget": 600000,
+    "createdAt": "2022-01-01T00:00:00.000Z",
+    "updatedAt": "2022-01-01T00:00:00.000Z"
+  }
+]

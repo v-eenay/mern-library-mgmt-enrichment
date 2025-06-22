@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { employees } = require('../models/Employee');
+const { employees, saveEmployees } = require('../models/Employee');
 
 // GET /api/employees - Get all employees
 router.get('/', (req, res) => {
@@ -102,8 +102,8 @@ router.post('/', (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    
-    employees.push(newEmployee);
+      employees.push(newEmployee);
+    saveEmployees(employees);
     
     res.status(201).json({ success: true, data: newEmployee });
   } catch (error) {
@@ -141,8 +141,7 @@ router.put('/:id', (req, res) => {
         });
       }
     }
-    
-    // Update employee
+      // Update employee
     employees[employeeIndex] = {
       ...employees[employeeIndex],
       firstName: firstName || employees[employeeIndex].firstName,
@@ -155,6 +154,8 @@ router.put('/:id', (req, res) => {
       status: status || employees[employeeIndex].status,
       updatedAt: new Date()
     };
+
+    saveEmployees(employees);
     
     res.json({ success: true, data: employees[employeeIndex] });
   } catch (error) {
@@ -170,8 +171,8 @@ router.delete('/:id', (req, res) => {
     if (employeeIndex === -1) {
       return res.status(404).json({ success: false, error: 'Employee not found' });
     }
-    
-    const deletedEmployee = employees.splice(employeeIndex, 1)[0];
+      const deletedEmployee = employees.splice(employeeIndex, 1)[0];
+    saveEmployees(employees);
     
     res.json({ success: true, data: deletedEmployee, message: 'Employee deleted successfully' });
   } catch (error) {
