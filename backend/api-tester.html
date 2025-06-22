@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .endpoint-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .status-success {
+            color: #28a745;
+        }
+        .status-error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 HRMS API Tester</h1>
+        <p>Test the HRMS Backend API endpoints directly from your browser.</p>
+        <p><strong>Server:</strong> <span id="serverStatus">Checking...</span></p>
+    </div>
+
+    <div class="container section">
+        <h2>👥 Employee Endpoints</h2>
+        <div class="endpoint-group">
+            <button onclick="testEndpoint('GET', '/employees')">Get All Employees</button>
+            <button onclick="testEndpoint('GET', '/employees/stats/summary')">Employee Stats</button>
+            <button onclick="createEmployee()">Create Employee</button>
+        </div>
+        <div id="employee-response" class="response"></div>
+    </div>
+
+    <div class="container section">
+        <h2>🏢 Department Endpoints</h2>
+        <div class="endpoint-group">
+            <button onclick="testEndpoint('GET', '/departments')">Get All Departments</button>
+            <button onclick="testEndpoint('GET', '/departments/stats/budget')">Department Stats</button>
+            <button onclick="createDepartment()">Create Department</button>
+        </div>
+        <div id="department-response" class="response"></div>
+    </div>
+
+    <div class="container section">
+        <h2>📅 Attendance Endpoints</h2>
+        <div class="endpoint-group">
+            <button onclick="testEndpoint('GET', '/attendance')">Get All Attendance</button>
+            <button onclick="testEndpoint('GET', '/attendance/stats/summary')">Attendance Stats</button>
+            <button onclick="clockIn()">Clock In</button>
+            <button onclick="createAttendance()">Create Attendance</button>
+        </div>
+        <div id="attendance-response" class="response"></div>
+    </div>
+
+    <div class="container section">
+        <h2>🔧 System Endpoints</h2>
+        <div class="endpoint-group">
+            <button onclick="testEndpoint('GET', '/')">Base Route</button>
+            <button onclick="testEndpoint('GET', '/health')">Health Check</button>
+        </div>
+        <div id="system-response" class="response"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        const SERVER_BASE = 'http://localhost:5000';
+
+        // Check server status on load
+        window.onload = async () => {
+            try {
+                const response = await fetch(`${SERVER_BASE}/health`);
+                const data = await response.json();
+                document.getElementById('serverStatus').innerHTML = 
+                    `<span class="status-success">✅ Online (${data.status})</span>`;
+            } catch (error) {
+                document.getElementById('serverStatus').innerHTML = 
+                    `<span class="status-error">❌ Offline</span>`;
+            }
+        };
+
+        async function testEndpoint(method, endpoint, body = null) {
+            const url = endpoint.startsWith('/') ? 
+                (endpoint.startsWith('/api') ? `${SERVER_BASE}${endpoint}` : `${API_BASE}${endpoint}`) :
+                `${SERVER_BASE}/${endpoint}`;
+            
+            const responseElementId = getResponseElementId(endpoint);
+            const responseElement = document.getElementById(responseElementId);
+            
+            responseElement.innerHTML = `<p>🔄 Loading...</p>`;
+            
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'status-success' : 'status-error';
+                responseElement.innerHTML = `
+                    <p><strong class="${statusClass}">Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>URL:</strong> ${method} ${url}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseElement.innerHTML = `
+                    <p><strong class="status-error">Error:</strong> ${error.message}</p>
+                    <p><strong>URL:</strong> ${method} ${url}</p>
+                `;
+            }
+        }
+
+        function getResponseElementId(endpoint) {
+            if (endpoint.includes('employee')) return 'employee-response';
+            if (endpoint.includes('department')) return 'department-response';
+            if (endpoint.includes('attendance')) return 'attendance-response';
+            return 'system-response';
+        }
+
+        async function createEmployee() {
+            const employee = {
+                firstName: 'Alice',
+                lastName: 'Johnson',
+                email: `alice.johnson.${Date.now()}@company.com`,
+                phone: '+1-555-0127',
+                position: 'UI/UX Designer',
+                department: 'Design',
+                salary: 65000
+            };
+            
+            await testEndpoint('POST', '/employees', employee);
+        }
+
+        async function createDepartment() {
+            const department = {
+                name: `Design-${Date.now()}`,
+                description: 'User experience and interface design',
+                manager: 'Alice Johnson',
+                budget: 1000000
+            };
+            
+            await testEndpoint('POST', '/departments', department);
+        }
+
+        async function createAttendance() {
+            const attendance = {
+                employeeId: `emp-${Date.now()}`,
+                employeeName: 'Test Employee',
+                date: new Date().toISOString().split('T')[0],
+                clockIn: '09:15:00',
+                clockOut: '17:45:00',
+                status: 'present',
+                notes: 'Regular working day'
+            };
+            
+            await testEndpoint('POST', '/attendance', attendance);
+        }
+
+        async function clockIn() {
+            const clockInData = {
+                employeeId: `emp-${Date.now()}`,
+                employeeName: 'Test Employee'
+            };
+            
+            await testEndpoint('POST', '/attendance/clock-in', clockInData);
+        }
+    </script>
+</body>
+</html>
