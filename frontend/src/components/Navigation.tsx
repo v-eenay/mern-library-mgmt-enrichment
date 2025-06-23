@@ -1,8 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Navigation.css';
 
 const Navigation: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <nav className="navigation">
       <div className="nav-container">
@@ -38,6 +47,20 @@ const Navigation: React.FC = () => {
             </Link>
           </li>
         </ul>
+
+        <div className="nav-user">
+          <div className="user-info">
+            <span className="user-name">
+              {user?.firstName} {user?.lastName}
+            </span>
+            <span className="user-role">
+              {user?.role} • {user?.department}
+            </span>
+          </div>
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
+          </button>
+        </div>
       </div>
     </nav>
   );
