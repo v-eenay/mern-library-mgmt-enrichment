@@ -1,0 +1,93 @@
+[
+  {
+    "id": "att-001",
+    "employeeId": "emp-001",
+    "employeeName": "John Doe",
+    "date": "2024-06-22",
+    "clockIn": "09:00:00",
+    "clockOut": "17:30:00",
+    "totalHours": 8.5,
+    "status": "present",
+    "notes": "Regular working day",
+    "createdAt": "2024-06-22T09:00:00.000Z",
+    "updatedAt": "2024-06-22T17:30:00.000Z"
+  },
+  {
+    "id": "att-002",
+    "employeeId": "emp-002",
+    "employeeName": "Jane Smith",
+    "date": "2024-06-22",
+    "clockIn": "08:45:00",
+    "clockOut": "17:15:00",
+    "totalHours": 8.5,
+    "status": "present",
+    "notes": "Early arrival",
+    "createdAt": "2024-06-22T08:45:00.000Z",
+    "updatedAt": "2024-06-22T17:15:00.000Z"
+  },
+  {
+    "id": "att-003",
+    "employeeId": "emp-003",
+    "employeeName": "Mike Johnson",
+    "date": "2024-06-22",
+    "clockIn": "09:15:00",
+    "clockOut": "18:00:00",
+    "totalHours": 8.75,
+    "status": "present",
+    "notes": "Extended hours for project",
+    "createdAt": "2024-06-22T09:15:00.000Z",
+    "updatedAt": "2024-06-22T18:00:00.000Z"
+  },
+  {
+    "id": "att-004",
+    "employeeId": "emp-004",
+    "employeeName": "Sarah Wilson",
+    "date": "2024-06-22",
+    "clockIn": null,
+    "clockOut": null,
+    "totalHours": 0,
+    "status": "absent",
+    "notes": "Sick leave",
+    "createdAt": "2024-06-22T00:00:00.000Z",
+    "updatedAt": "2024-06-22T00:00:00.000Z"
+  },
+  {
+    "id": "att-005",
+    "employeeId": "emp-001",
+    "employeeName": "John Doe",
+    "date": "2024-06-21",
+    "clockIn": "09:05:00",
+    "clockOut": "17:35:00",
+    "totalHours": 8.5,
+    "status": "present",
+    "notes": "Regular working day",
+    "createdAt": "2024-06-21T09:05:00.000Z",
+    "updatedAt": "2024-06-21T17:35:00.000Z"
+  },
+  {
+    "id": "att-006",
+    "employeeId": "emp-002",
+    "employeeName": "Jane Smith",
+    "date": "2024-06-21",
+    "clockIn": "08:50:00",
+    "clockOut": "17:20:00",
+    "totalHours": 8.5,
+    "status": "present",
+    "notes": "Productive day",
+    "createdAt": "2024-06-21T08:50:00.000Z",
+    "updatedAt": "2024-06-21T17:20:00.000Z"
+  },
+  {
+    "id": "att-007",
+    "employeeId": "emp-005",
+    "employeeName": "Robert Brown",
+    "date": "2024-06-22",
+    "clockIn": "08:30:00",
+    "clockOut": "17:00:00",
+    "totalHours": 8.5,
+    "status": "present",
+    "notes": "Board meeting preparation",
+    "createdAt": "2024-06-22T08:30:00.000Z",
+    "updatedAt": "2024-06-22T17:00:00.000Z"
+  }
+]

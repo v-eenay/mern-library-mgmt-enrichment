@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { departments } = require('../models/Department');
+const { departments, saveDepartments } = require('../models/Department');
 
 // GET /api/departments - Get all departments
 router.get('/', (req, res) => {
@@ -82,8 +82,8 @@ router.post('/', (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    
-    departments.push(newDepartment);
+      departments.push(newDepartment);
+    saveDepartments(departments);
     
     res.status(201).json({ success: true, data: newDepartment });
   } catch (error) {
@@ -120,8 +120,7 @@ router.put('/:id', (req, res) => {
         });
       }
     }
-    
-    // Update department
+      // Update department
     departments[departmentIndex] = {
       ...departments[departmentIndex],
       name: name || departments[departmentIndex].name,
@@ -131,6 +130,8 @@ router.put('/:id', (req, res) => {
       budget: budget !== undefined ? budget : departments[departmentIndex].budget,
       updatedAt: new Date()
     };
+
+    saveDepartments(departments);
     
     res.json({ success: true, data: departments[departmentIndex] });
   } catch (error) {
@@ -146,8 +147,8 @@ router.delete('/:id', (req, res) => {
     if (departmentIndex === -1) {
       return res.status(404).json({ success: false, error: 'Department not found' });
     }
-    
-    const deletedDepartment = departments.splice(departmentIndex, 1)[0];
+      const deletedDepartment = departments.splice(departmentIndex, 1)[0];
+    saveDepartments(departments);
     
     res.json({ 
       success: true, 

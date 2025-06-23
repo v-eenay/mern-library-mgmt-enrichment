@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { attendance } = require('../models/Attendance');
+const { attendance, saveAttendance } = require('../models/Attendance');
 
 // GET /api/attendance - Get all attendance records
 router.get('/', (req, res) => {
@@ -131,8 +131,8 @@ router.post('/', (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    
-    attendance.push(newAttendanceRecord);
+      attendance.push(newAttendanceRecord);
+    saveAttendance(attendance);
     
     res.status(201).json({ success: true, data: newAttendanceRecord });
   } catch (error) {
@@ -166,8 +166,7 @@ router.put('/:id', (req, res) => {
       const clockOutTime = new Date(`2000-01-01T${updatedClockOut}`);
       totalHours = (clockOutTime - clockInTime) / (1000 * 60 * 60); // Convert to hours
     }
-    
-    // Update attendance record
+      // Update attendance record
     attendance[attendanceIndex] = {
       ...attendance[attendanceIndex],
       clockIn: updatedClockIn,
@@ -177,6 +176,8 @@ router.put('/:id', (req, res) => {
       notes: notes !== undefined ? notes : attendance[attendanceIndex].notes,
       updatedAt: new Date()
     };
+
+    saveAttendance(attendance);
     
     res.json({ success: true, data: attendance[attendanceIndex] });
   } catch (error) {
@@ -192,8 +193,8 @@ router.delete('/:id', (req, res) => {
     if (attendanceIndex === -1) {
       return res.status(404).json({ success: false, error: 'Attendance record not found' });
     }
-    
-    const deletedRecord = attendance.splice(attendanceIndex, 1)[0];
+      const deletedRecord = attendance.splice(attendanceIndex, 1)[0];
+    saveAttendance(attendance);
     
     res.json({ 
       success: true, 
@@ -245,8 +246,8 @@ router.post('/clock-in', (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    
-    attendance.push(clockInRecord);
+      attendance.push(clockInRecord);
+    saveAttendance(attendance);
     
     res.status(201).json({ success: true, data: clockInRecord });
   } catch (error) {
@@ -292,8 +293,7 @@ router.post('/clock-out', (req, res) => {
     const clockInTime = new Date(`2000-01-01T${attendance[attendanceIndex].clockIn}`);
     const clockOutTime = new Date(`2000-01-01T${currentTime}`);
     const totalHours = (clockOutTime - clockInTime) / (1000 * 60 * 60);
-    
-    // Update the record
+      // Update the record
     attendance[attendanceIndex] = {
       ...attendance[attendanceIndex],
       clockOut: currentTime,
@@ -301,6 +301,8 @@ router.post('/clock-out', (req, res) => {
       notes: attendance[attendanceIndex].notes + ' - Auto clock-out',
       updatedAt: new Date()
     };
+
+    saveAttendance(attendance);
     
     res.json({ success: true, data: attendance[attendanceIndex] });
   } catch (error) {
