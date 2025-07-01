@@ -63,22 +63,18 @@ const About: React.FC = () => {
   ];
 
   return (
-    <div className="about-page">
-      <div className="hero-section">
-        <div className="container">
-          <h1 className="hero-title">About Our HRMS</h1>
-          <p className="hero-subtitle">
-            Revolutionizing Human Resource Management with Modern Technology
-          </p>
-        </div>
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="page-title">About Our HRMS</h1>
+        <p className="page-subtitle">
+          Revolutionizing Human Resource Management with Modern Technology
+        </p>
       </div>
 
-      <div className="page-content">
-        <div className="container">
-          {/* Mission Section */}
-          <section className="mission-section">
-            <div className="section-content">
-              <h2 className="section-title">Our Mission</h2>
+      {/* Mission Section */}
+      <section className="mission-section">
+        <div className="section-content">
+          <h2 className="section-title">Our Mission</h2>
               <p className="mission-text">
                 We're dedicated to simplifying human resource management through innovative technology. 
                 Our HRMS platform empowers organizations to streamline their HR processes, improve 
@@ -194,9 +190,7 @@ const About: React.FC = () => {
                 </div>
               </div>
             </div>
-          </section>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };
