@@ -7,10 +7,7 @@ dotenv.config();
 const mongoURI = process.env.DB_URL;
 
 // Connect to MongoDB
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose.connect(mongoURI);
 // Get the default connection
 const db = mongoose.connection;
 // Event handlers for connection events

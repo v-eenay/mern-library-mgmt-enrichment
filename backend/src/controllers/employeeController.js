@@ -14,7 +14,8 @@
  * @version 1.0.0
  */
 
-import * as employeeService from '../services/employeeService.js';
+import Employee from '../models/Employee.js';
+import Department from '../models/Department.js';
 
 /**
  * Get all employees with optional filtering, searching, and pagination
@@ -36,31 +37,71 @@ export const getAllEmployees = async (req, res) => {
     console.log('Controller: getAllEmployees called with query:', req.query);
 
     // Extract query parameters with defaults
-    const options = {
-      department: req.query.department,
-      status: req.query.status,
-      search: req.query.search,
-      page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 10,
-      sortBy: req.query.sortBy || 'name',
-      sortOrder: req.query.sortOrder || 'asc'
-    };
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    // Call service layer
-    const result = await employeeService.getAllEmployees(options);
+    // Build query object
+    const query = {};
+
+    if (req.query.department) {
+      query.department = req.query.department;
+    }
+
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      query.$or = [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex },
+        { employeeId: searchRegex },
+        { position: searchRegex }
+      ];
+    }
+
+    // Build sort object
+    const sortBy = req.query.sortBy || 'firstName';
+    const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+    const sort = { [sortBy]: sortOrder };
+
+    // Execute query with pagination
+    const [employees, totalCount] = await Promise.all([
+      Employee.find(query)
+        .populate('department', 'name code')
+        .select('-password')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Employee.countDocuments(query)
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limit);
+    const pagination = {
+      currentPage: page,
+      totalPages,
+      totalItems: totalCount,
+      itemsPerPage: limit,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    };
 
     // Return success response
     res.status(200).json({
       success: true,
       message: 'Employees retrieved successfully',
-      data: result.employees,
-      pagination: result.pagination,
+      data: employees,
+      pagination,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('Error in getAllEmployees controller:', error.message);
-    
+
     // Return error response
     res.status(500).json({
       success: false,
@@ -79,10 +120,13 @@ export const getAllEmployees = async (req, res) => {
  */
 export const getEmployeeById = async (req, res) => {
   try {
-    console.log('Controller: getEmployeeById called with ID:', req.employeeId);
+    const employeeId = req.params.id;
+    console.log('Controller: getEmployeeById called with ID:', employeeId);
 
-    // Call service layer
-    const employee = await employeeService.getEmployeeById(req.employeeId);
+    // Find employee by ID
+    const employee = await Employee.findById(employeeId)
+      .populate('department', 'name code description')
+      .select('-password');
 
     if (!employee) {
       return res.status(404).json({
@@ -103,7 +147,7 @@ export const getEmployeeById = async (req, res) => {
 
   } catch (error) {
     console.error('Error in getEmployeeById controller:', error.message);
-    
+
     // Return error response
     res.status(500).json({
       success: false,
@@ -124,26 +168,44 @@ export const createEmployee = async (req, res) => {
   try {
     console.log('Controller: createEmployee called with data:', req.body);
 
-    // Call service layer
-    const newEmployee = await employeeService.createEmployee(req.body);
+    // Create new employee
+    const newEmployee = new Employee(req.body);
+    await newEmployee.save();
+
+    // Populate department info and remove password
+    const populatedEmployee = await Employee.findById(newEmployee._id)
+      .populate('department', 'name code description')
+      .select('-password');
 
     // Return success response
     res.status(201).json({
       success: true,
       message: 'Employee created successfully',
-      data: newEmployee,
+      data: populatedEmployee,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('Error in createEmployee controller:', error.message);
-    
-    // Handle validation errors specifically
-    if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+
+    // Handle MongoDB validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validationErrors,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
       return res.status(409).json({
         success: false,
-        error: 'Employee with this email already exists',
-        code: 'DUPLICATE_EMAIL',
+        error: `Employee with this ${field} already exists`,
+        code: 'DUPLICATE_FIELD',
         timestamp: new Date().toISOString()
       });
     }
@@ -166,10 +228,20 @@ export const createEmployee = async (req, res) => {
  */
 export const updateEmployee = async (req, res) => {
   try {
-    console.log('Controller: updateEmployee called with ID:', req.employeeId, 'and data:', req.body);
+    const employeeId = req.params.id;
+    console.log('Controller: updateEmployee called with ID:', employeeId, 'and data:', req.body);
 
-    // Call service layer
-    const updatedEmployee = await employeeService.updateEmployee(req.employeeId, req.body);
+    // Update employee
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    )
+    .populate('department', 'name code description')
+    .select('-password');
 
     if (!updatedEmployee) {
       return res.status(404).json({
@@ -190,13 +262,25 @@ export const updateEmployee = async (req, res) => {
 
   } catch (error) {
     console.error('Error in updateEmployee controller:', error.message);
-    
-    // Handle validation errors specifically
-    if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+
+    // Handle MongoDB validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validationErrors,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
       return res.status(409).json({
         success: false,
-        error: 'Employee with this email already exists',
-        code: 'DUPLICATE_EMAIL',
+        error: `Employee with this ${field} already exists`,
+        code: 'DUPLICATE_FIELD',
         timestamp: new Date().toISOString()
       });
     }
@@ -219,12 +303,17 @@ export const updateEmployee = async (req, res) => {
  */
 export const deleteEmployee = async (req, res) => {
   try {
-    console.log('Controller: deleteEmployee called with ID:', req.employeeId);
+    const employeeId = req.params.id;
+    console.log('Controller: deleteEmployee called with ID:', employeeId);
 
-    // Call service layer
-    const success = await employeeService.deleteEmployee(req.employeeId);
+    // Soft delete by updating status to 'terminated'
+    const deletedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { status: 'terminated' },
+      { new: true }
+    );
 
-    if (!success) {
+    if (!deletedEmployee) {
       return res.status(404).json({
         success: false,
         error: 'Employee not found',
@@ -242,7 +331,7 @@ export const deleteEmployee = async (req, res) => {
 
   } catch (error) {
     console.error('Error in deleteEmployee controller:', error.message);
-    
+
     // Return error response
     res.status(500).json({
       success: false,
@@ -263,8 +352,51 @@ export const getEmployeeStats = async (req, res) => {
   try {
     console.log('Controller: getEmployeeStats called');
 
-    // Call service layer
-    const stats = await employeeService.getEmployeeStatistics();
+    // Get employee statistics using aggregation
+    const [
+      totalEmployees,
+      activeEmployees,
+      departmentStats,
+      statusStats,
+      salaryStats
+    ] = await Promise.all([
+      Employee.countDocuments(),
+      Employee.countDocuments({ status: 'active' }),
+      Employee.aggregate([
+        { $group: { _id: '$department', count: { $sum: 1 } } },
+        { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'dept' } },
+        { $unwind: '$dept' },
+        { $project: { departmentName: '$dept.name', count: 1 } }
+      ]),
+      Employee.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      Employee.aggregate([
+        {
+          $group: {
+            _id: null,
+            averageSalary: { $avg: '$salary' },
+            minSalary: { $min: '$salary' },
+            maxSalary: { $max: '$salary' },
+            totalSalaryBudget: { $sum: '$salary' }
+          }
+        }
+      ])
+    ]);
+
+    const stats = {
+      totalEmployees,
+      activeEmployees,
+      inactiveEmployees: totalEmployees - activeEmployees,
+      departmentBreakdown: departmentStats,
+      statusBreakdown: statusStats,
+      salaryStatistics: salaryStats[0] || {
+        averageSalary: 0,
+        minSalary: 0,
+        maxSalary: 0,
+        totalSalaryBudget: 0
+      }
+    };
 
     // Return success response
     res.status(200).json({
@@ -276,7 +408,7 @@ export const getEmployeeStats = async (req, res) => {
 
   } catch (error) {
     console.error('Error in getEmployeeStats controller:', error.message);
-    
+
     // Return error response
     res.status(500).json({
       success: false,
@@ -297,33 +429,78 @@ export const searchEmployees = async (req, res) => {
   try {
     console.log('Controller: searchEmployees called with filters:', req.query);
 
-    // Extract search filters
-    const filters = {
-      query: req.query.q || req.query.query,
-      department: req.query.department,
-      position: req.query.position,
-      status: req.query.status,
-      dateFrom: req.query.dateFrom,
-      dateTo: req.query.dateTo,
-      salaryMin: req.query.salaryMin ? parseFloat(req.query.salaryMin) : undefined,
-      salaryMax: req.query.salaryMax ? parseFloat(req.query.salaryMax) : undefined
-    };
+    // Build search query
+    const query = {};
 
-    // Call service layer
-    const results = await employeeService.searchEmployees(filters);
+    // Text search
+    if (req.query.q || req.query.query) {
+      const searchTerm = req.query.q || req.query.query;
+      const searchRegex = new RegExp(searchTerm, 'i');
+      query.$or = [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex },
+        { employeeId: searchRegex },
+        { position: searchRegex }
+      ];
+    }
+
+    // Department filter
+    if (req.query.department) {
+      query.department = req.query.department;
+    }
+
+    // Position filter
+    if (req.query.position) {
+      query.position = new RegExp(req.query.position, 'i');
+    }
+
+    // Status filter
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
+    // Date range filter (hire date)
+    if (req.query.dateFrom || req.query.dateTo) {
+      query.hireDate = {};
+      if (req.query.dateFrom) {
+        query.hireDate.$gte = new Date(req.query.dateFrom);
+      }
+      if (req.query.dateTo) {
+        query.hireDate.$lte = new Date(req.query.dateTo);
+      }
+    }
+
+    // Salary range filter
+    if (req.query.salaryMin || req.query.salaryMax) {
+      query.salary = {};
+      if (req.query.salaryMin) {
+        query.salary.$gte = parseFloat(req.query.salaryMin);
+      }
+      if (req.query.salaryMax) {
+        query.salary.$lte = parseFloat(req.query.salaryMax);
+      }
+    }
+
+    // Execute search
+    const results = await Employee.find(query)
+      .populate('department', 'name code')
+      .select('-password')
+      .sort({ firstName: 1 });
 
     // Return success response
     res.status(200).json({
       success: true,
       message: 'Employee search completed successfully',
       data: results,
-      searchFilters: filters,
+      count: results.length,
+      searchFilters: req.query,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('Error in searchEmployees controller:', error.message);
-    
+
     // Return error response
     res.status(500).json({
       success: false,
@@ -334,87 +511,4 @@ export const searchEmployees = async (req, res) => {
   }
 };
 
-/**
- * Bulk import employees from CSV/JSON data
- * 
- * @param {Object} req - Express request object (expects validated employees array)
- * @param {Object} res - Express response object
- */
-export const bulkImportEmployees = async (req, res) => {
-  try {
-    console.log('Controller: bulkImportEmployees called with', req.body.employees?.length || 0, 'employees');
-
-    // Call service layer
-    const result = await employeeService.bulkImportEmployees(req.body.employees);
-
-    // Return success response
-    res.status(201).json({
-      success: true,
-      message: 'Bulk import completed successfully',
-      data: {
-        imported: result.successful,
-        failed: result.failed,
-        total: result.total,
-        errors: result.errors
-      },
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error in bulkImportEmployees controller:', error.message);
-    
-    // Return error response
-    res.status(500).json({
-      success: false,
-      error: 'Failed to import employees',
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-};
-
-/**
- * Export employees data in various formats
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-export const exportEmployees = async (req, res) => {
-  try {
-    console.log('Controller: exportEmployees called with format:', req.query.format);
-
-    const format = req.query.format || 'json';
-    const filters = {
-      department: req.query.department,
-      status: req.query.status,
-      dateFrom: req.query.dateFrom,
-      dateTo: req.query.dateTo
-    };
-
-    // Call service layer
-    const exportData = await employeeService.exportEmployees(format, filters);
-
-    // Set appropriate headers based on format
-    if (format === 'csv') {
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=employees.csv');
-    } else {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', 'attachment; filename=employees.json');
-    }
-
-    // Return export data
-    res.status(200).send(exportData);
-
-  } catch (error) {
-    console.error('Error in exportEmployees controller:', error.message);
-    
-    // Return error response
-    res.status(500).json({
-      success: false,
-      error: 'Failed to export employees',
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-};
+// Additional functions like bulk import and export can be added later

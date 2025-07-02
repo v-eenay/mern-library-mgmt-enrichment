@@ -1,183 +1,249 @@
 /**
  * Employee Model
- * 
- * This module handles all employee data operations including:
- * - Loading employee data from JSON file
- * - Saving employee data to JSON file
- * - Providing employee data structure and validation
- * 
+ *
+ * Mongoose model for Employee entity with comprehensive schema definition,
+ * validation, and business logic methods.
+ *
  * @author HRMS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
-// Get current directory path for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { Schema } = mongoose;
 
 /**
- * Employee data structure interface
- * @typedef {Object} Employee
- * @property {string} id - Unique employee identifier
- * @property {string} firstName - Employee's first name
- * @property {string} lastName - Employee's last name
- * @property {string} email - Employee's email address (unique)
- * @property {string} phone - Employee's phone number
- * @property {string} position - Employee's job position
- * @property {string} department - Employee's department
- * @property {number} salary - Employee's salary
- * @property {string} hireDate - Employee's hire date (YYYY-MM-DD)
- * @property {string} status - Employee's status (active/inactive)
- * @property {Date} createdAt - Record creation timestamp
- * @property {Date} updatedAt - Record last update timestamp
+ * Employee Schema Definition
+ * Comprehensive schema with validation, indexing, and business logic
  */
+const employeeSchema = new Schema({
+  // Personal Information
+  firstName: {
+    type: String,
+    required: [true, 'First name is required'],
+    trim: true,
+    minlength: [2, 'First name must be at least 2 characters'],
+    maxlength: [50, 'First name cannot exceed 50 characters']
+  },
 
-/**
- * Load employees data from JSON file
- * @returns {Employee[]} Array of employee objects
- */
-const loadEmployees = () => {
-  try {
-    // Construct path to employees.json file
-    const dataPath = path.join(__dirname, '../../data/employees.json');
-    
-    // Check if file exists
-    if (!fs.existsSync(dataPath)) {
-      console.warn('Employee data file not found, returning empty array');
-      return [];
-    }
-    
-    // Read and parse JSON data
-    const rawData = fs.readFileSync(dataPath, 'utf8');
-    const employees = JSON.parse(rawData);
-    
-    console.log(`Successfully loaded ${employees.length} employees from database`);
-    return employees;
-  } catch (error) {
-    console.error('Error loading employees data:', error.message);
-    return [];
-  }
-};
+  lastName: {
+    type: String,
+    required: [true, 'Last name is required'],
+    trim: true,
+    minlength: [2, 'Last name must be at least 2 characters'],
+    maxlength: [50, 'Last name cannot exceed 50 characters']
+  },
 
-/**
- * Save employees data to JSON file
- * @param {Employee[]} employees - Array of employee objects to save
- * @returns {boolean} Success status of save operation
- */
-const saveEmployees = (employees) => {
-  try {
-    // Construct path to employees.json file
-    const dataPath = path.join(__dirname, '../../data/employees.json');
-    
-    // Ensure data directory exists
-    const dataDir = path.dirname(dataPath);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    
-    // Write formatted JSON data to file
-    fs.writeFileSync(dataPath, JSON.stringify(employees, null, 2), 'utf8');
-    
-    console.log(`Successfully saved ${employees.length} employees to database`);
-    return true;
-  } catch (error) {
-    console.error('Error saving employees data:', error.message);
-    return false;
-  }
-};
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+  },
 
-/**
- * Validate employee data structure
- * @param {Object} employeeData - Employee data to validate
- * @returns {Object} Validation result with isValid flag and errors array
- */
-const validateEmployeeData = (employeeData) => {
-  const errors = [];
-  
-  // Required fields validation
-  const requiredFields = ['firstName', 'lastName', 'email', 'position', 'department'];
-  requiredFields.forEach(field => {
-    if (!employeeData[field] || employeeData[field].trim() === '') {
-      errors.push(`${field} is required`);
-    }
-  });
-  
-  // Email format validation
-  if (employeeData.email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(employeeData.email)) {
-      errors.push('Invalid email format');
-    }
-  }
-  
-  // Salary validation
-  if (employeeData.salary !== undefined) {
-    const salary = Number(employeeData.salary);
-    if (isNaN(salary) || salary < 0) {
-      errors.push('Salary must be a positive number');
-    }
-  }
-  
-  // Phone validation (optional but must be valid if provided)
-  if (employeeData.phone && employeeData.phone.trim() !== '') {
-    const phoneRegex = /^[\+]?[1-9]?[\d\s\-\(\)]{7,15}$/;
-    if (!phoneRegex.test(employeeData.phone)) {
-      errors.push('Invalid phone number format');
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
+  phone: {
+    type: String,
+    trim: true,
+    match: [/^[\+]?[1-9]?[\d\s\-\(\)]{7,15}$/, 'Please enter a valid phone number']
+  },
 
-/**
- * Create a new employee object with default values
- * @param {Object} employeeData - Basic employee data
- * @returns {Employee} Complete employee object with timestamps
- */
-const createEmployeeObject = (employeeData) => {
+  // Professional Information
+  employeeId: {
+    type: String,
+    unique: true
+  },
+
+  position: {
+    type: String,
+    required: [true, 'Position is required'],
+    trim: true,
+    maxlength: [100, 'Position cannot exceed 100 characters']
+  },
+
+  department: {
+    type: Schema.Types.ObjectId,
+    ref: 'Department',
+    required: [true, 'Department is required']
+  },
+
+  salary: {
+    type: Number,
+    required: [true, 'Salary is required'],
+    min: [0, 'Salary cannot be negative']
+  },
+
+  hireDate: {
+    type: Date,
+    required: [true, 'Hire date is required'],
+    default: Date.now
+  },
+
+  // Authentication (for employee login)
+  password: {
+    type: String,
+    required: [true, 'Password is required'],
+    minlength: [6, 'Password must be at least 6 characters'],
+    select: false // Don't include password in queries by default
+  },
+
+  role: {
+    type: String,
+    enum: ['employee', 'manager', 'hr', 'admin'],
+    default: 'employee'
+  },
+
+  // Status and Metadata
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'on-leave', 'terminated'],
+    default: 'active'
+  },
+
+  // Additional Information
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: { type: String, default: 'USA' }
+  },
+
+  emergencyContact: {
+    name: String,
+    relationship: String,
+    phone: String,
+    email: String
+  },
+
+  // Profile Information
+  avatar: String,
+  dateOfBirth: Date,
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other', 'prefer-not-to-say']
+  },
+
+  // Work Information
+  workLocation: {
+    type: String,
+    enum: ['office', 'remote', 'hybrid'],
+    default: 'office'
+  },
+
+  skills: [String],
+
+  // System fields
+  lastLogin: Date,
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+
+  emailVerificationToken: String,
+  passwordResetToken: String,
+  passwordResetExpires: Date
+
+}, {
+  timestamps: true, // Automatically adds createdAt and updatedAt
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Indexes for better query performance (email and employeeId already have unique indexes)
+employeeSchema.index({ department: 1 });
+employeeSchema.index({ status: 1 });
+employeeSchema.index({ firstName: 1, lastName: 1 });
+
+// Virtual for full name
+employeeSchema.virtual('fullName').get(function() {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// Virtual for years of service
+employeeSchema.virtual('yearsOfService').get(function() {
   const now = new Date();
-  
-  return {
-    id: employeeData.id || generateEmployeeId(),
-    firstName: employeeData.firstName?.trim() || '',
-    lastName: employeeData.lastName?.trim() || '',
-    email: employeeData.email?.toLowerCase().trim() || '',
-    phone: employeeData.phone?.trim() || '',
-    position: employeeData.position?.trim() || '',
-    department: employeeData.department?.trim() || '',
-    salary: Number(employeeData.salary) || 0,
-    hireDate: employeeData.hireDate || now.toISOString().split('T')[0],
-    status: employeeData.status || 'active',
-    createdAt: employeeData.createdAt || now.toISOString(),
-    updatedAt: now.toISOString()
-  };
+  const hireDate = new Date(this.hireDate);
+  return Math.floor((now - hireDate) / (365.25 * 24 * 60 * 60 * 1000));
+});
+
+// Pre-save middleware to hash password
+employeeSchema.pre('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) return next();
+
+  try {
+    // Hash password with cost of 12
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    this.password = await bcrypt.hash(this.password, saltRounds);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Pre-save middleware to generate employee ID
+employeeSchema.pre('save', function(next) {
+  if (!this.employeeId) {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    this.employeeId = `EMP-${timestamp}-${random}`;
+  }
+  next();
+});
+
+// Instance method to check password
+employeeSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    throw new Error('Password comparison failed');
+  }
 };
 
-/**
- * Generate a unique employee ID
- * @returns {string} Unique employee identifier
- */
-const generateEmployeeId = () => {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000);
-  return `emp-${timestamp}-${random}`;
+// Instance method to generate password reset token
+employeeSchema.methods.createPasswordResetToken = function() {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  return resetToken;
 };
 
-// Load initial employee data
-let employees = loadEmployees();
-
-// Export all functions and data
-export {
-  employees,
-  loadEmployees,
-  saveEmployees,
-  validateEmployeeData,
-  createEmployeeObject,
-  generateEmployeeId
+// Static method to find active employees
+employeeSchema.statics.findActive = function() {
+  return this.find({ status: 'active' });
 };
+
+// Static method to find by department
+employeeSchema.statics.findByDepartment = function(departmentId) {
+  return this.find({ department: departmentId, status: 'active' });
+};
+
+// Static method to search employees
+employeeSchema.statics.searchEmployees = function(searchTerm) {
+  const regex = new RegExp(searchTerm, 'i');
+  return this.find({
+    $or: [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { employeeId: regex },
+      { position: regex }
+    ],
+    status: 'active'
+  });
+};
+
+// Create and export the Employee model
+const Employee = mongoose.model('Employee', employeeSchema);
+
+export default Employee;
