@@ -52,20 +52,17 @@ const Employees: React.FC = () => {
   ];
 
   return (
-    <div className="employees-page">
+    <div className="page-container">
       <div className="page-header">
-        <div className="container">
-          <h1 className="page-title">Employee Management</h1>
-          <p className="page-subtitle">Manage and view all employee information</p>
-          <div className="page-actions">
-            <button className="btn btn-primary">Add New Employee</button>
-            <button className="btn btn-secondary">Export Data</button>
-          </div>
+        <h1 className="page-title">Employee Management</h1>
+        <p className="page-subtitle">Manage and view all employee information</p>
+        <div className="page-actions">
+          <button className="btn btn-primary">Add New Employee</button>
+          <button className="btn btn-secondary">Export Data</button>
         </div>
       </div>
 
       <div className="page-content">
-        <div className="container">
           <div className="filters-section">
             <div className="search-box">
               <input 
@@ -129,11 +126,10 @@ const Employees: React.FC = () => {
             ))}
           </div>
 
-          <div className="pagination">
-            <button className="btn btn-secondary">Previous</button>
-            <span className="pagination-info">Page 1 of 1</span>
-            <button className="btn btn-secondary">Next</button>
-          </div>
+        <div className="pagination">
+          <button className="btn btn-secondary">Previous</button>
+          <span className="pagination-info">Page 1 of 1</span>
+          <button className="btn btn-secondary">Next</button>
         </div>
       </div>
     </div>

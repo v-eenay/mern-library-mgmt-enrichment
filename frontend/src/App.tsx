@@ -9,6 +9,7 @@ import Employees from './pages/Employees';
 import Departments from './pages/Departments';
 import Attendance from './pages/Attendance';
 import About from './pages/About';
+import Profile from './pages/Profile';
 import './App.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
                     <Route path="/employees" element={<Employees />} />
                     <Route path="/departments" element={<Departments />} />
                     <Route path="/attendance" element={<Attendance />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/about" element={<About />} />
                   </Routes>
                 </main>
