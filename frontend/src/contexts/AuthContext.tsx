@@ -51,77 +51,114 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
-      // Demo users for development
-      const demoUsers: User[] = [
-        {
-          id: 'emp-001',
-          email: 'john.doe@company.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'Employee',
-          department: 'Engineering'
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: 'admin-001',
-          email: 'admin@company.com',
-          firstName: 'Admin',
-          lastName: 'User',
-          role: 'Admin',
-          department: 'Human Resources'
-        },
-        {
-          id: 'emp-002',
-          email: 'jane.smith@company.com',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          role: 'Manager',
-          department: 'Product'
-        },
-        {
-          id: 'emp-003',
-          email: 'mike.johnson@company.com',
-          firstName: 'Mike',
-          lastName: 'Johnson',
-          role: 'HR Manager',
-          department: 'Human Resources'
-        },
-        {
-          id: 'emp-004',
-          email: 'sarah.wilson@company.com',
-          firstName: 'Sarah',
-          lastName: 'Wilson',
-          role: 'Marketing Specialist',
-          department: 'Marketing'
-        }
-      ];
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const data = await response.json();
 
-      // Demo password is 'password123' for all users
-      if (password === 'password123') {
-        const foundUser = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (foundUser) {
-          setUser(foundUser);
-          localStorage.setItem('hrms_user', JSON.stringify(foundUser));
-          return true;
-        }
+      if (response.ok && data.success) {
+        const { token, user: userData } = data.data;
+
+        // Store token and user data
+        localStorage.setItem('hrms_token', token);
+        localStorage.setItem('hrms_user', JSON.stringify(userData));
+
+        // Update user state
+        setUser({
+          id: userData._id,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          role: userData.role,
+          department: userData.department?.name || userData.department
+        });
+
+        return true;
+      } else {
+        console.error('Login failed:', data.error);
+        return false;
       }
-      
-      return false;
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      // Fallback to demo users if backend is not available
+      return await loginWithDemoUsers(email, password);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const loginWithDemoUsers = async (email: string, password: string): Promise<boolean> => {
+    // Demo users for development when backend is not available
+    const demoUsers: User[] = [
+      {
+        id: 'emp-001',
+        email: 'john.doe@company.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        role: 'Employee',
+        department: 'Engineering'
+      },
+      {
+        id: 'admin-001',
+        email: 'admin@company.com',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'Admin',
+        department: 'Human Resources'
+      },
+      {
+        id: 'emp-002',
+        email: 'jane.smith@company.com',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        role: 'Manager',
+        department: 'Product'
+      },
+      {
+        id: 'emp-003',
+        email: 'mike.johnson@company.com',
+        firstName: 'Mike',
+        lastName: 'Johnson',
+        role: 'HR Manager',
+        department: 'Human Resources'
+      },
+      {
+        id: 'emp-004',
+        email: 'sarah.wilson@company.com',
+        firstName: 'Sarah',
+        lastName: 'Wilson',
+        role: 'Marketing Specialist',
+        department: 'Marketing'
+      }
+    ];
+
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Demo password is 'password123' for all users
+    if (password === 'password123') {
+      const foundUser = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (foundUser) {
+        setUser(foundUser);
+        localStorage.setItem('hrms_user', JSON.stringify(foundUser));
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('hrms_user');
+    localStorage.removeItem('hrms_token');
   };
 
   const value: AuthContextType = {
