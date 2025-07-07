@@ -82,7 +82,6 @@ const bookSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-bookSchema.index({ isbn: 1 }, { unique: true });
 bookSchema.index({ title: 1 });
 bookSchema.index({ author: 1 });
 bookSchema.index({ category: 1 });

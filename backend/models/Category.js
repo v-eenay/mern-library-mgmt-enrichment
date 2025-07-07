@@ -30,7 +30,6 @@ const categorySchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-categorySchema.index({ name: 1 }, { unique: true });
 categorySchema.index({ createdAt: -1 });
 
 // Pre-save middleware to normalize category name
