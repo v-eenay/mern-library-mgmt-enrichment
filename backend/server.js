@@ -65,15 +65,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes will be added here
-// Example route structure:
-// app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/users', require('./routes/users'));
-// app.use('/api/books', require('./routes/books'));
-// app.use('/api/borrows', require('./routes/borrows'));
-// app.use('/api/categories', require('./routes/categories'));
-// app.use('/api/contact', require('./routes/contact'));
-// app.use('/api/reviews', require('./routes/reviews'));
+// API routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/books', require('./routes/books'));
+app.use('/api/borrows', require('./routes/borrows'));
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/contact', require('./routes/contact'));
+app.use('/api/reviews', require('./routes/reviews'));
 
 // 404 handler
 app.use((req, res) => {
