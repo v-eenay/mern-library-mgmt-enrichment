@@ -34,6 +34,11 @@ const userSchema = new mongoose.Schema({
     },
     default: 'borrower'
   },
+  profilePicture: {
+    type: String,
+    default: null,
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -57,7 +62,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 

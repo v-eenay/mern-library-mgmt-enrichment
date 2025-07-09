@@ -3,10 +3,20 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const colors = require('colors');
 
-// Load environment variables
+// Load environment variables (suppress promotional messages)
+const originalConsoleLog = console.log;
+console.log = (...args) => {
+  const message = args.join(' ');
+  if (!message.includes('dotenv') && !message.includes('dotenvx')) {
+    originalConsoleLog(...args);
+  }
+};
 dotenv.config();
+console.log = originalConsoleLog;
 
 // Import database connection
 const connectDB = require('./config/database');
@@ -55,24 +65,41 @@ if (process.env.NODE_ENV === 'development') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cookie parsing middleware
+app.use(cookieParser());
+
+// Static file serving for uploaded images
+app.use('/uploads', express.static('uploads'));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'HRMS Backend API is running',
+    message: 'Library Management System Backend API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
 });
 
+// Import all routes from centralized index
+const {
+  authRoutes,
+  usersRoutes,
+  booksRoutes,
+  borrowsRoutes,
+  categoriesRoutes,
+  contactRoutes,
+  reviewsRoutes
+} = require('./routes');
+
 // API routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/books', require('./routes/books'));
-app.use('/api/borrows', require('./routes/borrows'));
-app.use('/api/categories', require('./routes/categories'));
-app.use('/api/contact', require('./routes/contact'));
-app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/books', booksRoutes);
+app.use('/api/borrows', borrowsRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -84,7 +111,10 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.log('✗'.red, 'Error:'.red, err.message);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(err.stack.gray);
+  }
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
@@ -129,6 +159,49 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+// Enhanced startup display function
+const displayStartupInfo = () => {
+  const env = process.env.NODE_ENV || 'development';
+  const serverUrl = `http://localhost:${PORT}`;
+
+  console.log('\n' + '═'.repeat(80).cyan);
+  console.log('║'.cyan + '                    📚 LIBRARY MANAGEMENT SYSTEM                    '.bold.white + '║'.cyan);
+  console.log('║'.cyan + '                          Backend API Server                          '.white + '║'.cyan);
+  console.log('═'.repeat(80).cyan);
+  console.log('');
+
+  // Server Status
+  console.log('✓'.green, 'Server Status:'.bold, 'Running'.green);
+  console.log('✓'.green, 'Environment:'.bold, env.toUpperCase().yellow);
+  console.log('✓'.green, 'Port:'.bold, PORT.toString().cyan);
+  console.log('✓'.green, 'URL:'.bold, serverUrl.blue.underline);
+  console.log('');
+
+  // API Endpoints Summary
+  console.log('📋 Available API Endpoints:'.magenta);
+  console.log('   ├─'.gray, 'GET  /health'.cyan, '- Server health check'.gray);
+  console.log('   ├─'.gray, 'POST /api/auth/*'.cyan, '- Authentication routes'.gray);
+  console.log('   ├─'.gray, 'GET  /api/books/*'.cyan, '- Book management'.gray);
+  console.log('   ├─'.gray, 'POST /api/borrows/*'.cyan, '- Borrowing system'.gray);
+  console.log('   ├─'.gray, 'GET  /api/categories/*'.cyan, '- Category management'.gray);
+  console.log('   ├─'.gray, 'POST /api/contact'.cyan, '- Contact messages'.gray);
+  console.log('   ├─'.gray, 'GET  /api/reviews/*'.cyan, '- Review system'.gray);
+  console.log('   └─'.gray, 'GET  /api/users/*'.cyan, '- User management (Librarian)'.gray);
+  console.log('');
+
+  // Development Info
+  if (env === 'development') {
+    console.log('🔧 Development Mode:'.yellow);
+    console.log('   ├─'.gray, 'Hot reload enabled'.yellow);
+    console.log('   ├─'.gray, 'Detailed logging active'.yellow);
+    console.log('   └─'.gray, 'CORS enabled for'.yellow, (process.env.CLIENT_URL || 'http://localhost:3000').cyan);
+    console.log('');
+  }
+
+  console.log('🚀 Ready to accept connections!'.green);
+  console.log('═'.repeat(80).cyan + '\n');
+};
+
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  displayStartupInfo();
 });
