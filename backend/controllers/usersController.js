@@ -1,5 +1,6 @@
 const { User, Borrow } = require('../models');
 const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } = require('../utils/helpers');
+const { deleteFile, getFileUrl } = require('../middleware/upload');
 
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/users
@@ -185,11 +186,99 @@ const getUserStats = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Upload profile picture
+// @route   POST /api/users/upload-profile-picture
+// @access  Private
+const uploadProfilePicture = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const userId = req.user._id;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    // Clean up uploaded file if user not found
+    await deleteFile(req.file.path);
+    return sendError(res, 'User not found', 404);
+  }
+
+  // Delete old profile picture if it exists
+  if (user.profilePicture) {
+    await deleteFile(user.profilePicture).catch(err => {
+      console.error('Error deleting old profile picture:', err);
+    });
+  }
+
+  // Update user with new profile picture path
+  const profilePicturePath = `uploads/profiles/${req.file.filename}`;
+  user.profilePicture = profilePicturePath;
+  await user.save();
+
+  // Generate full URL for response
+  const profilePictureUrl = getFileUrl(req, profilePicturePath);
+
+  sendSuccess(res, 'Profile picture uploaded successfully', {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePicture: profilePictureUrl
+    }
+  });
+});
+
+// @desc    Update profile picture
+// @route   PUT /api/users/update-profile-picture
+// @access  Private
+const updateProfilePicture = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const userId = req.user._id;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    // Clean up uploaded file if user not found
+    await deleteFile(req.file.path);
+    return sendError(res, 'User not found', 404);
+  }
+
+  // Delete old profile picture if it exists
+  if (user.profilePicture) {
+    await deleteFile(user.profilePicture).catch(err => {
+      console.error('Error deleting old profile picture:', err);
+    });
+  }
+
+  // Update user with new profile picture path
+  const profilePicturePath = `uploads/profiles/${req.file.filename}`;
+  user.profilePicture = profilePicturePath;
+  await user.save();
+
+  // Generate full URL for response
+  const profilePictureUrl = getFileUrl(req, profilePicturePath);
+
+  sendSuccess(res, 'Profile picture updated successfully', {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePicture: profilePictureUrl
+    }
+  });
+});
+
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
   updateUser,
   deleteUser,
-  getUserStats
+  getUserStats,
+  uploadProfilePicture,
+  updateProfilePicture
 };

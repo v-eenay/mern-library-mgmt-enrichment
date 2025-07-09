@@ -1,5 +1,6 @@
 const { User } = require('../models');
 const { generateToken, sendSuccess, sendError, asyncHandler } = require('../utils/helpers');
+const { getFileUrl } = require('../middleware/upload');
 
 // Helper function to set authentication cookie
 const setAuthCookie = (res, token) => {
@@ -91,12 +92,15 @@ const login = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/profile
 // @access  Private
 const getProfile = asyncHandler(async (req, res) => {
+  const profilePictureUrl = req.user.profilePicture ? getFileUrl(req, req.user.profilePicture) : null;
+
   sendSuccess(res, 'Profile retrieved successfully', {
     user: {
       id: req.user._id,
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
+      profilePicture: profilePictureUrl,
       createdAt: req.user.createdAt
     }
   });
@@ -122,12 +126,15 @@ const updateProfile = asyncHandler(async (req, res) => {
 
   await user.save();
 
+  const profilePictureUrl = user.profilePicture ? getFileUrl(req, user.profilePicture) : null;
+
   sendSuccess(res, 'Profile updated successfully', {
     user: {
       id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      profilePicture: profilePictureUrl
     }
   });
 });

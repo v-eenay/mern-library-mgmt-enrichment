@@ -1,6 +1,8 @@
 const express = require('express');
 const { authenticate, requireLibrarian } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
+const { uploadBookCover, handleMulterError } = require('../middleware/upload');
+const { bookCoverUploadRateLimit } = require('../middleware/uploadRateLimit');
 const booksController = require('../controllers/booksController');
 
 const router = express.Router();
@@ -39,5 +41,29 @@ router.put('/:id', authenticate, requireLibrarian, validationMiddleware.updateBo
 // @route   DELETE /api/books/:id
 // @access  Private (Librarian only)
 router.delete('/:id', authenticate, requireLibrarian, booksController.deleteBook);
+
+// @desc    Upload book cover image
+// @route   POST /api/books/:id/upload-cover
+// @access  Private (Librarian only)
+router.post('/:id/upload-cover',
+  authenticate,
+  requireLibrarian,
+  bookCoverUploadRateLimit,
+  uploadBookCover.single('coverImage'),
+  handleMulterError,
+  booksController.uploadBookCover
+);
+
+// @desc    Update book cover image
+// @route   PUT /api/books/:id/update-cover
+// @access  Private (Librarian only)
+router.put('/:id/update-cover',
+  authenticate,
+  requireLibrarian,
+  bookCoverUploadRateLimit,
+  uploadBookCover.single('coverImage'),
+  handleMulterError,
+  booksController.updateBookCover
+);
 
 module.exports = router;

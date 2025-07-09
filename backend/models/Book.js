@@ -56,10 +56,17 @@ const bookSchema = new mongoose.Schema({
   coverImage: {
     type: String,
     trim: true,
-    match: [
-      /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i,
-      'Please enter a valid image URL'
-    ]
+    default: null,
+    validate: {
+      validator: function(value) {
+        if (!value) return true; // Allow null/empty values
+        // Allow URLs or local file paths
+        const urlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
+        const localPathPattern = /^uploads\/.+\.(jpg|jpeg|png|gif)$/i;
+        return urlPattern.test(value) || localPathPattern.test(value);
+      },
+      message: 'Please enter a valid image URL or local file path'
+    }
   },
   createdAt: {
     type: Date,

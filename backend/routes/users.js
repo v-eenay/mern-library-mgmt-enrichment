@@ -1,12 +1,36 @@
 const express = require('express');
 const { authenticate, requireLibrarian } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
+const { uploadProfile, handleMulterError } = require('../middleware/upload');
+const { profileUploadRateLimit } = require('../middleware/uploadRateLimit');
 const usersController = require('../controllers/usersController');
 
 const router = express.Router();
 
-// All routes require authentication and librarian role
+// Profile picture routes (accessible to all authenticated users)
 router.use(authenticate);
+
+// @desc    Upload profile picture
+// @route   POST /api/users/upload-profile-picture
+// @access  Private
+router.post('/upload-profile-picture',
+  profileUploadRateLimit,
+  uploadProfile.single('profilePicture'),
+  handleMulterError,
+  usersController.uploadProfilePicture
+);
+
+// @desc    Update profile picture
+// @route   PUT /api/users/update-profile-picture
+// @access  Private
+router.put('/update-profile-picture',
+  profileUploadRateLimit,
+  uploadProfile.single('profilePicture'),
+  handleMulterError,
+  usersController.updateProfilePicture
+);
+
+// All remaining routes require librarian role
 router.use(requireLibrarian);
 
 // @desc    Get all users with pagination and filtering

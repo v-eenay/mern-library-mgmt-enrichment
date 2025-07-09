@@ -1,5 +1,6 @@
 const { Book, Review, Borrow } = require('../models');
 const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } = require('../utils/helpers');
+const { deleteFile, getFileUrl } = require('../middleware/upload');
 
 // @desc    Get all books with pagination, search, and filtering
 // @route   GET /api/books
@@ -40,8 +41,17 @@ const getAllBooks = asyncHandler(async (req, res) => {
 
   const total = await Book.countDocuments(query);
 
+  // Generate full URLs for cover images
+  const booksWithUrls = books.map(book => {
+    const bookObj = book.toObject();
+    if (bookObj.coverImage) {
+      bookObj.coverImage = getFileUrl(req, bookObj.coverImage);
+    }
+    return bookObj;
+  });
+
   sendSuccess(res, 'Books retrieved successfully', {
-    books,
+    books: booksWithUrls,
     pagination: {
       total,
       page: parseInt(page),
@@ -69,9 +79,15 @@ const getBookById = asyncHandler(async (req, res) => {
   // Get average rating and review count
   const reviewStats = await Review.getAverageRating(id);
 
+  // Generate full URL for cover image if it exists
+  const bookObj = book.toObject();
+  if (bookObj.coverImage) {
+    bookObj.coverImage = getFileUrl(req, bookObj.coverImage);
+  }
+
   sendSuccess(res, 'Book retrieved successfully', {
     book: {
-      ...book.toObject(),
+      ...bookObj,
       averageRating: reviewStats.averageRating,
       totalReviews: reviewStats.totalReviews,
       ratingDistribution: reviewStats.ratingDistribution
@@ -197,6 +213,102 @@ const getBooksByCategory = asyncHandler(async (req, res) => {
   sendSuccess(res, 'Books by category retrieved successfully', { books, category });
 });
 
+// @desc    Upload book cover image
+// @route   POST /api/books/:id/upload-cover
+// @access  Private (Librarian only)
+const uploadBookCover = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    // Clean up uploaded file if invalid ID
+    if (req.file) {
+      await deleteFile(req.file.path);
+    }
+    return sendError(res, 'Invalid book ID', 400);
+  }
+
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const book = await Book.findById(id);
+  if (!book) {
+    // Clean up uploaded file if book not found
+    await deleteFile(req.file.path);
+    return sendError(res, 'Book not found', 404);
+  }
+
+  // Delete old cover image if it exists and it's a local file
+  if (book.coverImage && book.coverImage.startsWith('uploads/')) {
+    await deleteFile(book.coverImage).catch(err => {
+      console.error('Error deleting old cover image:', err);
+    });
+  }
+
+  // Update book with new cover image path
+  const coverImagePath = `uploads/books/${req.file.filename}`;
+  book.coverImage = coverImagePath;
+  await book.save();
+
+  // Generate full URL for response
+  const coverImageUrl = getFileUrl(req, coverImagePath);
+
+  sendSuccess(res, 'Book cover uploaded successfully', {
+    book: {
+      ...book.toObject(),
+      coverImage: coverImageUrl
+    }
+  });
+});
+
+// @desc    Update book cover image
+// @route   PUT /api/books/:id/update-cover
+// @access  Private (Librarian only)
+const updateBookCover = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    // Clean up uploaded file if invalid ID
+    if (req.file) {
+      await deleteFile(req.file.path);
+    }
+    return sendError(res, 'Invalid book ID', 400);
+  }
+
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const book = await Book.findById(id);
+  if (!book) {
+    // Clean up uploaded file if book not found
+    await deleteFile(req.file.path);
+    return sendError(res, 'Book not found', 404);
+  }
+
+  // Delete old cover image if it exists and it's a local file
+  if (book.coverImage && book.coverImage.startsWith('uploads/')) {
+    await deleteFile(book.coverImage).catch(err => {
+      console.error('Error deleting old cover image:', err);
+    });
+  }
+
+  // Update book with new cover image path
+  const coverImagePath = `uploads/books/${req.file.filename}`;
+  book.coverImage = coverImagePath;
+  await book.save();
+
+  // Generate full URL for response
+  const coverImageUrl = getFileUrl(req, coverImagePath);
+
+  sendSuccess(res, 'Book cover updated successfully', {
+    book: {
+      ...book.toObject(),
+      coverImage: coverImageUrl
+    }
+  });
+});
+
 module.exports = {
   getAllBooks,
   getBookById,
@@ -204,5 +316,7 @@ module.exports = {
   updateBook,
   deleteBook,
   getAvailableBooks,
-  getBooksByCategory
+  getBooksByCategory,
+  uploadBookCover,
+  updateBookCover
 };
