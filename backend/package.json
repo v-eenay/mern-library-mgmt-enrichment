@@ -1,7 +1,7 @@
 {
-  "name": "hrms-backend",
+  "name": "library-mgmt-backend",
   "version": "1.0.0",
-  "description": "HRMS Backend API built with Express.js and MongoDB",
+  "description": "Library Management System Backend API built with Express.js and MongoDB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,7 +9,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "hrms",
+    "library",
+    "management",
+    "system",
+    "books",
     "express",
     "mongodb",
     "api",
