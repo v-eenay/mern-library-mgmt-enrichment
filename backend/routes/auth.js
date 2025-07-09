@@ -30,4 +30,9 @@ router.put('/profile', authenticate, validationMiddleware.updateProfile, authCon
 // @access  Private
 router.put('/change-password', authenticate, validationMiddleware.changePassword, authController.changePassword);
 
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Private
+router.post('/logout', authenticate, authController.logout);
+
 module.exports = router;

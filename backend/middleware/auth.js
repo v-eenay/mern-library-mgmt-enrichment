@@ -1,10 +1,19 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token (supports both cookies and Bearer tokens)
 const authenticate = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    let token;
+
+    // First, try to get token from HTTP-only cookie
+    if (req.cookies && req.cookies.authToken) {
+      token = req.cookies.authToken;
+    }
+    // Fallback to Authorization header for backward compatibility
+    else if (req.header('Authorization')) {
+      token = req.header('Authorization').replace('Bearer ', '');
+    }
 
     if (!token) {
       return res.status(401).json({

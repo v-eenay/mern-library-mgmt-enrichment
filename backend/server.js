@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const colors = require('colors');
 
@@ -64,6 +65,9 @@ if (process.env.NODE_ENV === 'development') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cookie parsing middleware
+app.use(cookieParser());
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -74,14 +78,25 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Import all routes from centralized index
+const {
+  authRoutes,
+  usersRoutes,
+  booksRoutes,
+  borrowsRoutes,
+  categoriesRoutes,
+  contactRoutes,
+  reviewsRoutes
+} = require('./routes');
+
 // API routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/books', require('./routes/books'));
-app.use('/api/borrows', require('./routes/borrows'));
-app.use('/api/categories', require('./routes/categories'));
-app.use('/api/contact', require('./routes/contact'));
-app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/books', booksRoutes);
+app.use('/api/borrows', borrowsRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // 404 handler
 app.use((req, res) => {

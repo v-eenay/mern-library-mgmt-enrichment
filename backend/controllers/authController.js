@@ -1,6 +1,18 @@
 const { User } = require('../models');
 const { generateToken, sendSuccess, sendError, asyncHandler } = require('../utils/helpers');
 
+// Helper function to set authentication cookie
+const setAuthCookie = (res, token) => {
+  const cookieOptions = {
+    httpOnly: true, // Prevents XSS attacks
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: 'strict', // CSRF protection
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  };
+
+  res.cookie('authToken', token, cookieOptions);
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -26,6 +38,9 @@ const register = asyncHandler(async (req, res) => {
   // Generate token
   const token = generateToken(user._id);
 
+  // Set HTTP-only cookie
+  setAuthCookie(res, token);
+
   sendSuccess(res, 'User registered successfully', {
     user: {
       id: user._id,
@@ -33,7 +48,7 @@ const register = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role
     },
-    token
+    token // Still include token in response for backward compatibility
   }, 201);
 });
 
@@ -58,6 +73,9 @@ const login = asyncHandler(async (req, res) => {
   // Generate token
   const token = generateToken(user._id);
 
+  // Set HTTP-only cookie
+  setAuthCookie(res, token);
+
   sendSuccess(res, 'Login successful', {
     user: {
       id: user._id,
@@ -65,7 +83,7 @@ const login = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role
     },
-    token
+    token // Still include token in response for backward compatibility
   });
 });
 
@@ -136,10 +154,25 @@ const changePassword = asyncHandler(async (req, res) => {
   sendSuccess(res, 'Password changed successfully');
 });
 
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Private
+const logout = asyncHandler(async (req, res) => {
+  // Clear the authentication cookie
+  res.clearCookie('authToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+
+  sendSuccess(res, 'Logout successful');
+});
+
 module.exports = {
   register,
   login,
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  logout
 };
