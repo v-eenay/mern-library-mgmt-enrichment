@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const colors = require('colors');
 const securityMiddleware = require('./middleware/securityMiddleware');
+const { swaggerSpec, swaggerUi, swaggerUiOptions } = require('./config/swagger');
 
 // Load environment variables (suppress promotional messages)
 const originalConsoleLog = console.log;
@@ -149,13 +150,26 @@ app.use(cookieParser());
 // Static file serving for uploaded images
 app.use('/uploads', express.static('uploads'));
 
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Library Management System Backend API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    documentation: {
+      swagger: '/api-docs',
+      openapi: '/api-docs.json'
+    }
   });
 });
 
