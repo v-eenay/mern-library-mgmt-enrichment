@@ -14,8 +14,8 @@ const swaggerDefinition = {
     description: 'Professional Library Management System API with JWT authentication, RBAC, and comprehensive book/user management.',
     contact: {
       name: 'Library Management System API Support',
-      email: 'support@library-mgmt.com',
-      url: 'https://github.com/library-mgmt/api'
+      email: 'koiralavinay@gmail.com',
+      url: 'https://github.com/v-eenay/mern-library-mgmt-enrichment/issues'
     },
     license: {
       name: 'MIT',
