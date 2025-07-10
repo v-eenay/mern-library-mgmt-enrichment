@@ -2,7 +2,8 @@ const express = require('express');
 const { authenticate, requireLibrarian } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
 const { uploadProfile, uploadProfileMemory, handleMulterError } = require('../middleware/upload');
-const { profileUploadRateLimit, profileUploadAbuseProtection } = require('../middleware/uploadRateLimit');
+const { profileUploadRateLimit, profileUploadAbuseProtection, authRateLimit } = require('../middleware/uploadRateLimit');
+const securityMiddleware = require('../middleware/securityMiddleware');
 const usersController = require('../controllers/usersController');
 
 const router = express.Router();
@@ -15,6 +16,7 @@ router.use(authenticate);
 // @access  Private
 router.post('/upload-profile-picture',
   profileUploadRateLimit,
+  securityMiddleware.fileUploadSecurity(['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'], 5 * 1024 * 1024),
   uploadProfile.single('profilePicture'),
   handleMulterError,
   usersController.uploadProfilePicture

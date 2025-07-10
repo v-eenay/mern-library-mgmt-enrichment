@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
-const jwtService = require('../services/jwtService');
 
 // Generate JWT token (legacy function for backward compatibility)
 const generateToken = (userId) => {
+  // Lazy load JWT service to avoid circular dependency issues
+  const jwtService = require('../services/jwtService');
   return jwtService.generateAccessToken(userId);
 };
 

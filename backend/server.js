@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const colors = require('colors');
+const securityMiddleware = require('./middleware/securityMiddleware');
 
 // Load environment variables (suppress promotional messages)
 const originalConsoleLog = console.log;
@@ -75,6 +76,15 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+
+// Enhanced security middleware stack
+app.use(securityMiddleware.securityHeaders());
+app.use(securityMiddleware.suspiciousIPBlocking());
+// app.use(securityMiddleware.mongoSanitization()); // Temporarily disabled due to Express 5 compatibility
+app.use(securityMiddleware.parameterPollutionProtection());
+app.use(securityMiddleware.requestSizeLimit('10mb'));
+app.use(securityMiddleware.xssProtection());
+app.use(securityMiddleware.suspiciousPatternDetection());
 
 // Enhanced CORS configuration with security considerations
 const corsOptions = {
@@ -146,6 +156,22 @@ app.get('/health', (req, res) => {
     message: 'Library Management System Backend API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Security monitoring endpoint (restricted access)
+app.get('/security/stats', (req, res) => {
+  // Simple authentication check (in production, use proper auth)
+  const authHeader = req.headers.authorization;
+  if (!authHeader || authHeader !== `Bearer ${process.env.SECURITY_MONITOR_TOKEN || 'dev-token'}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const stats = securityMiddleware.getSecurityStats();
+  res.json({
+    status: 'success',
+    data: stats,
+    timestamp: new Date().toISOString()
   });
 });
 

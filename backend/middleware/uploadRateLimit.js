@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const securityMiddleware = require('./securityMiddleware');
 
 // Rate limiting for file uploads
 const uploadRateLimit = rateLimit({
@@ -248,6 +249,39 @@ const bookCoverUploadAbuseProtection = rateLimit({
   }
 });
 
+// Enhanced API endpoint rate limiting
+const apiEndpointRateLimit = securityMiddleware.createAdvancedRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // 200 requests per window
+  message: {
+    status: 'error',
+    message: 'Too many API requests from this IP, please try again later.',
+    retryAfter: '15 minutes'
+  }
+});
+
+// Search endpoint rate limiting (more permissive)
+const searchRateLimit = securityMiddleware.createAdvancedRateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 searches per minute
+  message: {
+    status: 'error',
+    message: 'Too many search requests, please slow down.',
+    retryAfter: '1 minute'
+  }
+});
+
+// Authentication rate limiting (strict)
+const authRateLimit = securityMiddleware.authRateLimit();
+
+// Progressive delay for suspicious behavior
+const progressiveDelay = securityMiddleware.createProgressiveDelay({
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 20,
+  delayMs: 1000,
+  maxDelayMs: 30000
+});
+
 module.exports = {
   uploadRateLimit,
   profileUploadRateLimit,
@@ -256,5 +290,9 @@ module.exports = {
   bookCoverUploadAbuseProtection,
   passwordChangeRateLimit,
   contactFormRateLimit,
-  contactSpamProtection
+  contactSpamProtection,
+  apiEndpointRateLimit,
+  searchRateLimit,
+  authRateLimit,
+  progressiveDelay
 };

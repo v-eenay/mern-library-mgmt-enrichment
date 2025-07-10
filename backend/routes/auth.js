@@ -1,7 +1,8 @@
 const express = require('express');
 const { authenticate, checkTokenExpiration } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
-const { passwordChangeRateLimit } = require('../middleware/uploadRateLimit');
+const { passwordChangeRateLimit, authRateLimit, progressiveDelay } = require('../middleware/uploadRateLimit');
+const securityMiddleware = require('../middleware/securityMiddleware');
 const authController = require('../controllers/authController');
 
 const router = express.Router();
@@ -9,12 +10,12 @@ const router = express.Router();
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
-router.post('/register', validationMiddleware.register, authController.register);
+router.post('/register', authRateLimit, progressiveDelay, validationMiddleware.register, authController.register);
 
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
-router.post('/login', validationMiddleware.login, authController.login);
+router.post('/login', authRateLimit, progressiveDelay, validationMiddleware.login, authController.login);
 
 // @desc    Get current user profile
 // @route   GET /api/auth/profile

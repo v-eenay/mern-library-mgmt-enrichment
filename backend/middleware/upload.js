@@ -4,6 +4,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const crypto = require('crypto');
+const securityMiddleware = require('./securityMiddleware');
 
 // Enhanced file filter function with security validation
 const fileFilter = (req, file, cb) => {
