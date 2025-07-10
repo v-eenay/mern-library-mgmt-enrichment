@@ -164,8 +164,21 @@ const validationMiddleware = {
   ]),
 
   changePassword: createValidationMiddleware([
-    body('currentPassword').notEmpty().withMessage('Current password is required'),
-    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
+    body('currentPassword')
+      .notEmpty()
+      .withMessage('Current password is required'),
+    body('newPassword')
+      .isLength({ min: 6 })
+      .withMessage('New password must be at least 6 characters long'),
+    body('confirmNewPassword')
+      .notEmpty()
+      .withMessage('Password confirmation is required')
+      .custom((value, { req }) => {
+        if (value !== req.body.newPassword) {
+          throw new Error('Password confirmation does not match new password');
+        }
+        return true;
+      })
   ]),
 
   // Book validations

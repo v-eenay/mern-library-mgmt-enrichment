@@ -143,22 +143,44 @@ const updateProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/auth/change-password
 // @access  Private
 const changePassword = asyncHandler(async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
+  const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+  // Additional validation to ensure passwords match (backup to validation middleware)
+  if (newPassword !== confirmNewPassword) {
+    return sendError(res, 'New password and confirmation password do not match', 400);
+  }
+
+  // Ensure new password is different from current password
+  if (currentPassword === newPassword) {
+    return sendError(res, 'New password must be different from current password', 400);
+  }
 
   // Get user with password
   const user = await User.findByEmailWithPassword(req.user.email);
+  if (!user) {
+    return sendError(res, 'User not found', 404);
+  }
 
   // Verify current password
   const isCurrentPasswordValid = await user.comparePassword(currentPassword);
   if (!isCurrentPasswordValid) {
-    return sendError(res, 'Current password is incorrect', 400);
+    return sendError(res, 'Current password is incorrect', 401);
   }
 
-  // Update password
+  // Update password (will be automatically hashed by pre-save middleware)
   user.password = newPassword;
   await user.save();
 
-  sendSuccess(res, 'Password changed successfully');
+  // Clear authentication cookies to force re-login for security
+  res.clearCookie('authToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+
+  sendSuccess(res, 'Password changed successfully. Please log in again with your new password.', {
+    message: 'For security reasons, you have been logged out. Please log in again with your new password.'
+  });
 });
 
 // @desc    Logout user

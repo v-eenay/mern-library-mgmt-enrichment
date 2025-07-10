@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
+const { passwordChangeRateLimit } = require('../middleware/uploadRateLimit');
 const authController = require('../controllers/authController');
 
 const router = express.Router();
@@ -28,7 +29,7 @@ router.put('/profile', authenticate, validationMiddleware.updateProfile, authCon
 // @desc    Change password
 // @route   PUT /api/auth/change-password
 // @access  Private
-router.put('/change-password', authenticate, validationMiddleware.changePassword, authController.changePassword);
+router.put('/change-password', authenticate, passwordChangeRateLimit, validationMiddleware.changePassword, authController.changePassword);
 
 // @desc    Logout user
 // @route   POST /api/auth/logout

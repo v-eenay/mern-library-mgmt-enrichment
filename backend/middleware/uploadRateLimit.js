@@ -128,8 +128,35 @@ const bookCoverUploadRateLimit = rateLimit({
   }
 });
 
+// Rate limiting for password changes (security-critical operation)
+const passwordChangeRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each user to 3 password change attempts per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many password change attempts, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: true,
+  keyGenerator: (req) => {
+    // Use user ID for authenticated requests, IP as fallback
+    return req.user ? `password_change_${req.user._id}` : `password_change_ip_${req.ip}`;
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      status: 'error',
+      message: 'Too many password change attempts from this account, please try again later.',
+      retryAfter: '15 minutes'
+    });
+  }
+});
+
 module.exports = {
   uploadRateLimit,
   profileUploadRateLimit,
-  bookCoverUploadRateLimit
+  bookCoverUploadRateLimit,
+  passwordChangeRateLimit
 };
