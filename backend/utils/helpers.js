@@ -1,12 +1,9 @@
 const jwt = require('jsonwebtoken');
+const jwtService = require('../services/jwtService');
 
-// Generate JWT token
+// Generate JWT token (legacy function for backward compatibility)
 const generateToken = (userId) => {
-  return jwt.sign(
-    { id: userId },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE || '7d' }
-  );
+  return jwtService.generateAccessToken(userId);
 };
 
 // Pagination helper

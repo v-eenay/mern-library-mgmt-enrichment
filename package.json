@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "cookie-parser": "^1.4.7",
+    "helmet": "^8.1.0",
     "multer": "^2.0.1",
     "sharp": "^0.34.2",
     "uuid": "^11.1.0"

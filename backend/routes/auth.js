@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, checkTokenExpiration } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
 const { passwordChangeRateLimit } = require('../middleware/uploadRateLimit');
 const authController = require('../controllers/authController');
@@ -35,5 +35,15 @@ router.put('/change-password', authenticate, passwordChangeRateLimit, validation
 // @route   POST /api/auth/logout
 // @access  Private
 router.post('/logout', authenticate, authController.logout);
+
+// @desc    Refresh access token
+// @route   POST /api/auth/refresh
+// @access  Public (requires refresh token)
+router.post('/refresh', authController.refreshToken);
+
+// @desc    Verify token validity
+// @route   GET /api/auth/verify
+// @access  Private
+router.get('/verify', authenticate, checkTokenExpiration, authController.verifyToken);
 
 module.exports = router;

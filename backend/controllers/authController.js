@@ -1,17 +1,15 @@
 const { User } = require('../models');
 const { generateToken, sendSuccess, sendError, asyncHandler } = require('../utils/helpers');
 const { getFileUrl } = require('../middleware/upload');
+const jwtService = require('../services/jwtService');
 
-// Helper function to set authentication cookie
-const setAuthCookie = (res, token) => {
-  const cookieOptions = {
-    httpOnly: true, // Prevents XSS attacks
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict', // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-  };
+// Enhanced helper function to set authentication cookies
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  // Set access token cookie
+  res.cookie('authToken', accessToken, jwtService.getCookieOptions('access'));
 
-  res.cookie('authToken', token, cookieOptions);
+  // Set refresh token cookie
+  res.cookie('refreshToken', refreshToken, jwtService.getCookieOptions('refresh'));
 };
 
 // @desc    Register a new user
@@ -71,20 +69,25 @@ const login = asyncHandler(async (req, res) => {
     return sendError(res, 'Invalid credentials', 401);
   }
 
-  // Generate token
-  const token = generateToken(user._id);
+  // Generate token pair using enhanced JWT service
+  const { accessToken, refreshToken } = jwtService.generateTokenPair(user._id, {
+    role: user.role,
+    email: user.email
+  });
 
-  // Set HTTP-only cookie
-  setAuthCookie(res, token);
+  // Set HTTP-only cookies for both tokens
+  setAuthCookies(res, accessToken, refreshToken);
 
   sendSuccess(res, 'Login successful', {
     user: {
       id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      profilePicture: user.profilePicture ? getFileUrl(req, user.profilePicture) : null
     },
-    token // Still include token in response for backward compatibility
+    accessToken, // Still include token in response for backward compatibility
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m'
   });
 });
 
@@ -172,11 +175,7 @@ const changePassword = asyncHandler(async (req, res) => {
   await user.save();
 
   // Clear authentication cookies to force re-login for security
-  res.clearCookie('authToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  });
+  jwtService.clearAuthCookies(res);
 
   sendSuccess(res, 'Password changed successfully. Please log in again with your new password.', {
     message: 'For security reasons, you have been logged out. Please log in again with your new password.'
@@ -187,14 +186,80 @@ const changePassword = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logout = asyncHandler(async (req, res) => {
-  // Clear the authentication cookie
-  res.clearCookie('authToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  });
+  // Blacklist current tokens
+  const accessToken = jwtService.extractToken(req);
+  const refreshToken = jwtService.extractRefreshToken(req);
+
+  if (accessToken) {
+    jwtService.blacklistToken(accessToken);
+  }
+
+  if (refreshToken) {
+    jwtService.blacklistToken(refreshToken);
+  }
+
+  // Clear authentication cookies
+  jwtService.clearAuthCookies(res);
 
   sendSuccess(res, 'Logout successful');
+});
+
+// @desc    Refresh access token
+// @route   POST /api/auth/refresh
+// @access  Public (requires refresh token)
+const refreshToken = asyncHandler(async (req, res) => {
+  const refreshToken = jwtService.extractRefreshToken(req);
+
+  if (!refreshToken) {
+    return sendError(res, 'Refresh token not provided', 401);
+  }
+
+  try {
+    // Generate new token pair
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = jwtService.refreshTokens(refreshToken);
+
+    // Get user info for response
+    const decoded = jwtService.verifyAccessToken(newAccessToken);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    // Set new cookies
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+
+    sendSuccess(res, 'Token refreshed successfully', {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture ? getFileUrl(req, user.profilePicture) : null
+      },
+      accessToken: newAccessToken,
+      expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+    });
+  } catch (error) {
+    return sendError(res, 'Invalid refresh token', 401);
+  }
+});
+
+// @desc    Verify token validity
+// @route   GET /api/auth/verify
+// @access  Private
+const verifyToken = asyncHandler(async (req, res) => {
+  // If we reach here, the token is valid (middleware already verified it)
+  sendSuccess(res, 'Token is valid', {
+    user: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      profilePicture: req.user.profilePicture ? getFileUrl(req, req.user.profilePicture) : null
+    },
+    tokenInfo: req.tokenInfo
+  });
 });
 
 module.exports = {
@@ -203,5 +268,7 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
-  logout
+  logout,
+  refreshToken,
+  verifyToken
 };
