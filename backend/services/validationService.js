@@ -82,6 +82,21 @@ const validationRules = {
       .withMessage('Message must be between 10 and 1000 characters')
   },
 
+  // Borrow validation rules
+  borrow: {
+    bookId: body('bookId')
+      .isMongoId()
+      .withMessage('Please provide a valid book ID'),
+    borrowPeriodDays: body('borrowPeriodDays')
+      .optional()
+      .isInt({ min: 1, max: 30 })
+      .withMessage('Borrow period must be between 1 and 30 days'),
+    additionalDays: body('additionalDays')
+      .optional()
+      .isInt({ min: 1, max: 30 })
+      .withMessage('Additional days must be between 1 and 30')
+  },
+
   // Review validation rules
   review: {
     bookId: body('bookId')
@@ -118,10 +133,59 @@ const validationRules = {
       .trim()
       .isLength({ min: 1 })
       .withMessage('Search term must not be empty'),
+    q: query('q')
+      .optional()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Search term must not be empty'),
+    title: query('title')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 200 })
+      .withMessage('Title search must be between 1 and 200 characters'),
+    author: query('author')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Author search must be between 1 and 100 characters'),
+    isbn: query('isbn')
+      .optional()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('ISBN search must not be empty'),
+    category: query('category')
+      .optional()
+      .custom((value) => {
+        if (Array.isArray(value)) {
+          return value.every(cat => typeof cat === 'string' && cat.trim().length > 0);
+        }
+        return typeof value === 'string' && value.trim().length > 0;
+      })
+      .withMessage('Category must be a non-empty string or array of non-empty strings'),
+    available: query('available')
+      .optional()
+      .isIn(['true', 'false', 'all', true, false])
+      .withMessage('Available must be true, false, or all'),
+    minQuantity: query('minQuantity')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Minimum quantity must be a non-negative integer'),
+    maxQuantity: query('maxQuantity')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Maximum quantity must be a non-negative integer'),
+    dateFrom: query('dateFrom')
+      .optional()
+      .isISO8601()
+      .withMessage('Date from must be a valid ISO 8601 date'),
+    dateTo: query('dateTo')
+      .optional()
+      .isISO8601()
+      .withMessage('Date to must be a valid ISO 8601 date'),
     sortBy: query('sortBy')
       .optional()
-      .isIn(['title', 'author', 'createdAt', 'category', 'rating'])
-      .withMessage('SortBy must be one of: title, author, createdAt, category, rating'),
+      .isIn(['title', 'author', 'createdAt', 'category', 'rating', 'quantity', 'available', 'isbn'])
+      .withMessage('SortBy must be one of: title, author, createdAt, category, rating, quantity, available, isbn'),
     sortOrder: query('sortOrder')
       .optional()
       .isIn(['asc', 'desc'])
@@ -219,10 +283,63 @@ const validationMiddleware = {
     validationRules.query.page,
     validationRules.query.limit,
     validationRules.query.search,
-    query('category').optional().trim().isLength({ min: 1 }).withMessage('Category must not be empty'),
-    query('available').optional().isBoolean().withMessage('Available must be a boolean value'),
+    validationRules.query.q,
+    validationRules.query.title,
+    validationRules.query.author,
+    validationRules.query.isbn,
+    validationRules.query.category,
+    validationRules.query.available,
+    validationRules.query.minQuantity,
+    validationRules.query.maxQuantity,
+    validationRules.query.dateFrom,
+    validationRules.query.dateTo,
+    validationRules.query.sortBy,
+    validationRules.query.sortOrder,
+    // Custom validation for quantity range
+    query().custom((value, { req }) => {
+      const { minQuantity, maxQuantity } = req.query;
+      if (minQuantity && maxQuantity && parseInt(minQuantity) > parseInt(maxQuantity)) {
+        throw new Error('Minimum quantity cannot be greater than maximum quantity');
+      }
+      return true;
+    }),
+    // Custom validation for date range
+    query().custom((value, { req }) => {
+      const { dateFrom, dateTo } = req.query;
+      if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+        throw new Error('Date from cannot be later than date to');
+      }
+      return true;
+    })
+  ]),
+
+  // Advanced search validation (alias for bookQuery)
+  advancedSearch: createValidationMiddleware([
+    validationRules.query.page,
+    validationRules.query.limit,
+    validationRules.query.search,
+    validationRules.query.q,
+    validationRules.query.title,
+    validationRules.query.author,
+    validationRules.query.isbn,
+    validationRules.query.category,
+    validationRules.query.available,
+    validationRules.query.minQuantity,
+    validationRules.query.maxQuantity,
+    validationRules.query.dateFrom,
+    validationRules.query.dateTo,
     validationRules.query.sortBy,
     validationRules.query.sortOrder
+  ]),
+
+  // Borrow validations
+  borrowBook: createValidationMiddleware([
+    validationRules.borrow.bookId,
+    validationRules.borrow.borrowPeriodDays
+  ]),
+
+  extendDueDate: createValidationMiddleware([
+    validationRules.borrow.additionalDays
   ])
 };
 

@@ -5,8 +5,17 @@ const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } =
 // @route   POST /api/borrows
 // @access  Private
 const borrowBook = asyncHandler(async (req, res) => {
-  const { bookId } = req.body;
+  const { bookId, borrowPeriodDays } = req.body;
   const userId = req.user._id;
+
+  // Validate borrowPeriodDays if provided
+  const maxBorrowPeriod = parseInt(process.env.MAX_BORROW_PERIOD_DAYS) || 30;
+  const defaultBorrowPeriod = parseInt(process.env.DEFAULT_BORROW_PERIOD_DAYS) || 14;
+  const actualBorrowPeriod = borrowPeriodDays || defaultBorrowPeriod;
+
+  if (actualBorrowPeriod > maxBorrowPeriod) {
+    return sendError(res, `Borrow period cannot exceed ${maxBorrowPeriod} days`, 400);
+  }
 
   // Check if book exists and is available
   const book = await Book.findById(bookId);
@@ -18,17 +27,30 @@ const borrowBook = asyncHandler(async (req, res) => {
     return sendError(res, 'Book is not available for borrowing', 400);
   }
 
+  // Check borrowing limits
+  const maxActiveBooks = parseInt(process.env.MAX_ACTIVE_BORROWS) || 5;
+  const activeCount = await Borrow.countActiveByUser(userId);
+  if (activeCount >= maxActiveBooks) {
+    return sendError(res, `You cannot borrow more than ${maxActiveBooks} books at once`, 400);
+  }
+
   // Check if user already has this book borrowed
   const existingBorrow = await Borrow.hasActiveBorrow(userId, bookId);
   if (existingBorrow) {
     return sendError(res, 'You have already borrowed this book', 400);
   }
 
+  // Calculate due date
+  const borrowDate = new Date();
+  const dueDate = Borrow.calculateDueDate(borrowDate, actualBorrowPeriod);
+
   // Create borrow record
   const borrow = new Borrow({
     userId,
     bookId,
-    borrowDate: new Date()
+    borrowDate,
+    dueDate,
+    status: 'active'
   });
 
   await borrow.save();
@@ -39,7 +61,11 @@ const borrowBook = asyncHandler(async (req, res) => {
   // Populate the borrow record for response
   await borrow.populate('bookId', 'title author isbn');
 
-  sendSuccess(res, 'Book borrowed successfully', { borrow }, 201);
+  sendSuccess(res, 'Book borrowed successfully', {
+    borrow,
+    dueDate: dueDate.toISOString(),
+    borrowPeriodDays: actualBorrowPeriod
+  }, 201);
 });
 
 // @desc    Return a book
@@ -64,9 +90,13 @@ const returnBook = asyncHandler(async (req, res) => {
   }
 
   // Check if book is already returned
-  if (borrow.returnDate) {
+  if (borrow.status === 'returned') {
     return sendError(res, 'Book has already been returned', 400);
   }
+
+  // Calculate if book was returned late
+  const isLate = new Date() > borrow.dueDate;
+  const daysLate = isLate ? Math.ceil((new Date() - borrow.dueDate) / (1000 * 60 * 60 * 24)) : 0;
 
   // Mark as returned
   await borrow.markAsReturned();
@@ -75,7 +105,15 @@ const returnBook = asyncHandler(async (req, res) => {
   const book = await Book.findById(borrow.bookId._id);
   await book.returnBook();
 
-  sendSuccess(res, 'Book returned successfully', { borrow });
+  sendSuccess(res, 'Book returned successfully', {
+    borrow,
+    returnInfo: {
+      returnedOn: borrow.returnDate,
+      wasLate: isLate,
+      daysLate: daysLate,
+      originalDueDate: borrow.dueDate
+    }
+  });
 });
 
 // @desc    Get user's borrow history
@@ -88,9 +126,11 @@ const getMyBorrows = asyncHandler(async (req, res) => {
 
   let query = { userId };
   if (status === 'active') {
-    query.returnDate = null;
+    query.status = 'active';
   } else if (status === 'returned') {
-    query.returnDate = { $ne: null };
+    query.status = 'returned';
+  } else if (status === 'overdue') {
+    query.status = 'overdue';
   }
 
   const borrows = await Borrow.find(query)
@@ -99,10 +139,21 @@ const getMyBorrows = asyncHandler(async (req, res) => {
     .limit(pageLimit)
     .skip(offset);
 
+  // Add computed fields for each borrow
+  const borrowsWithDetails = borrows.map(borrow => {
+    const borrowObj = borrow.toObject({ virtuals: true });
+    return {
+      ...borrowObj,
+      isOverdue: borrow.isOverdue,
+      daysUntilDue: borrow.daysUntilDue,
+      daysOverdue: borrow.daysOverdue
+    };
+  });
+
   const total = await Borrow.countDocuments(query);
 
   sendSuccess(res, 'Borrow history retrieved successfully', {
-    borrows,
+    borrows: borrowsWithDetails,
     pagination: {
       total,
       page: parseInt(page),
@@ -251,6 +302,116 @@ const getBorrowStats = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get overdue borrows
+// @route   GET /api/borrows/overdue
+// @access  Private (Librarian only)
+const getOverdueBorrows = asyncHandler(async (req, res) => {
+  const { page = 0, limit = 10 } = req.query;
+  const { limit: pageLimit, offset } = getPagination(page, limit);
+
+  // Update overdue statuses first
+  await Borrow.updateOverdueStatuses();
+
+  const overdueBorrows = await Borrow.find({ status: 'overdue' })
+    .populate('userId', 'name email')
+    .populate('bookId', 'title author isbn')
+    .sort({ dueDate: 1 }) // Oldest overdue first
+    .limit(pageLimit)
+    .skip(offset);
+
+  const total = await Borrow.countDocuments({ status: 'overdue' });
+
+  // Add computed fields
+  const borrowsWithDetails = overdueBorrows.map(borrow => {
+    const borrowObj = borrow.toObject({ virtuals: true });
+    return {
+      ...borrowObj,
+      daysOverdue: borrow.daysOverdue
+    };
+  });
+
+  sendSuccess(res, 'Overdue borrows retrieved successfully', {
+    borrows: borrowsWithDetails,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: pageLimit,
+      totalPages: Math.ceil(total / pageLimit)
+    }
+  });
+});
+
+// @desc    Extend due date for a borrow
+// @route   PUT /api/borrows/:id/extend
+// @access  Private (Librarian only)
+const extendDueDate = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { additionalDays = 7 } = req.body;
+
+  if (!isValidObjectId(id)) {
+    return sendError(res, 'Invalid borrow ID', 400);
+  }
+
+  if (additionalDays < 1 || additionalDays > 30) {
+    return sendError(res, 'Additional days must be between 1 and 30', 400);
+  }
+
+  const borrow = await Borrow.findById(id).populate('bookId', 'title author isbn');
+  if (!borrow) {
+    return sendError(res, 'Borrow record not found', 404);
+  }
+
+  if (borrow.status === 'returned') {
+    return sendError(res, 'Cannot extend due date for returned books', 400);
+  }
+
+  const oldDueDate = new Date(borrow.dueDate);
+  await borrow.extendDueDate(additionalDays);
+
+  sendSuccess(res, 'Due date extended successfully', {
+    borrow,
+    extension: {
+      oldDueDate,
+      newDueDate: borrow.dueDate,
+      additionalDays
+    }
+  });
+});
+
+// @desc    Get user's overdue borrows
+// @route   GET /api/borrows/my-overdue
+// @access  Private
+const getMyOverdueBorrows = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const overdueBorrows = await Borrow.findOverdueByUser(userId);
+
+  const borrowsWithDetails = overdueBorrows.map(borrow => {
+    const borrowObj = borrow.toObject({ virtuals: true });
+    return {
+      ...borrowObj,
+      daysOverdue: borrow.daysOverdue
+    };
+  });
+
+  sendSuccess(res, 'Your overdue borrows retrieved successfully', {
+    borrows: borrowsWithDetails,
+    count: borrowsWithDetails.length
+  });
+});
+
+// @desc    Update overdue statuses (maintenance endpoint)
+// @route   POST /api/borrows/update-overdue
+// @access  Private (Librarian only)
+const updateOverdueStatuses = asyncHandler(async (req, res) => {
+  const updatedBorrows = await Borrow.updateOverdueStatuses();
+
+  sendSuccess(res, 'Overdue statuses updated successfully', {
+    updatedCount: updatedBorrows.length,
+    message: `${updatedBorrows.length} borrows marked as overdue`
+  });
+});
+
 module.exports = {
   borrowBook,
   returnBook,
@@ -258,5 +419,9 @@ module.exports = {
   getAllBorrows,
   getBorrowById,
   getActiveBorrowsByBook,
-  getBorrowStats
+  getBorrowStats,
+  getOverdueBorrows,
+  extendDueDate,
+  getMyOverdueBorrows,
+  updateOverdueStatuses
 };

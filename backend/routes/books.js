@@ -12,6 +12,11 @@ const router = express.Router();
 // @access  Public
 router.get('/', validationMiddleware.bookQuery, booksController.getAllBooks);
 
+// @desc    Advanced search books with comprehensive filtering
+// @route   GET /api/books/search/advanced
+// @access  Public
+router.get('/search/advanced', validationMiddleware.advancedSearch, booksController.advancedSearchBooks);
+
 // @desc    Get available books
 // @route   GET /api/books/available/list
 // @access  Public
