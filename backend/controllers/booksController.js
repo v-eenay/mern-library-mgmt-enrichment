@@ -1,6 +1,13 @@
 const { Book, Review, Borrow } = require('../models');
 const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } = require('../utils/helpers');
-const { deleteFile, getFileUrl } = require('../middleware/upload');
+const {
+  deleteFile,
+  getFileUrl,
+  validateImageDimensions,
+  optimizeImage,
+  scanImageContent,
+  saveProcessedImage
+} = require('../middleware/upload');
 
 // @desc    Get all books with advanced search, filtering, and pagination
 // @route   GET /api/books
@@ -498,6 +505,122 @@ const updateBookCover = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Delete book cover image
+// @route   DELETE /api/books/:id/cover
+// @access  Private (Librarian only)
+const deleteBookCover = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    return sendError(res, 'Invalid book ID', 400);
+  }
+
+  const book = await Book.findById(id);
+  if (!book) {
+    return sendError(res, 'Book not found', 404);
+  }
+
+  if (!book.coverImage) {
+    return sendError(res, 'No cover image to delete', 400);
+  }
+
+  // Delete the file from disk if it's a local file
+  if (book.coverImage.startsWith('uploads/')) {
+    try {
+      await deleteFile(book.coverImage);
+    } catch (error) {
+      console.error('Error deleting cover image file:', error);
+      // Continue with database update even if file deletion fails
+    }
+  }
+
+  // Remove cover image from book record
+  book.coverImage = null;
+  await book.save();
+
+  sendSuccess(res, 'Book cover deleted successfully', {
+    book: book.toObject()
+  });
+});
+
+// @desc    Upload book cover with enhanced processing
+// @route   POST /api/books/:id/cover-enhanced
+// @access  Private (Librarian only)
+const uploadBookCoverEnhanced = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    return sendError(res, 'Invalid book ID', 400);
+  }
+
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const book = await Book.findById(id);
+  if (!book) {
+    return sendError(res, 'Book not found', 404);
+  }
+
+  try {
+    // Validate image dimensions
+    await validateImageDimensions(req.file.buffer, 'book');
+
+    // Scan for malicious content
+    await scanImageContent(req.file.buffer);
+
+    // Optimize image
+    const optimizedBuffer = await optimizeImage(req.file.buffer, 'book');
+
+    // Save processed image
+    const imagePath = await saveProcessedImage(optimizedBuffer, 'book', req.file.originalname);
+
+    // Delete old cover image if it exists and it's a local file
+    if (book.coverImage && book.coverImage.startsWith('uploads/')) {
+      await deleteFile(book.coverImage).catch(err => {
+        console.error('Error deleting old cover image:', err);
+      });
+    }
+
+    // Update book with new cover image path
+    book.coverImage = imagePath;
+    await book.save();
+
+    // Generate full URL for response
+    const coverImageUrl = getFileUrl(req, imagePath);
+
+    sendSuccess(res, 'Book cover uploaded and processed successfully', {
+      book: {
+        ...book.toObject(),
+        coverImage: coverImageUrl
+      },
+      processing: {
+        optimized: true,
+        scanned: true,
+        validated: true
+      }
+    });
+  } catch (error) {
+    return sendError(res, `Image processing failed: ${error.message}`, 400);
+  }
+});
+
+// @desc    Cleanup orphaned image files
+// @route   POST /api/books/cleanup-orphaned-images
+// @access  Private (Librarian only)
+const cleanupOrphanedImages = asyncHandler(async (req, res) => {
+  try {
+    const { cleanupOrphanedFiles } = require('../middleware/upload');
+    const result = await cleanupOrphanedFiles();
+
+    sendSuccess(res, 'Orphaned image cleanup completed', {
+      cleanup: result
+    });
+  } catch (error) {
+    return sendError(res, `Cleanup failed: ${error.message}`, 500);
+  }
+});
+
 module.exports = {
   getAllBooks,
   getBookById,
@@ -508,5 +631,8 @@ module.exports = {
   getBooksByCategory,
   advancedSearchBooks,
   uploadBookCover,
-  updateBookCover
+  updateBookCover,
+  deleteBookCover,
+  uploadBookCoverEnhanced,
+  cleanupOrphanedImages
 };

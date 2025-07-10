@@ -1,8 +1,8 @@
 const express = require('express');
 const { authenticate, requireLibrarian } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
-const { uploadProfile, handleMulterError } = require('../middleware/upload');
-const { profileUploadRateLimit } = require('../middleware/uploadRateLimit');
+const { uploadProfile, uploadProfileMemory, handleMulterError } = require('../middleware/upload');
+const { profileUploadRateLimit, profileUploadAbuseProtection } = require('../middleware/uploadRateLimit');
 const usersController = require('../controllers/usersController');
 
 const router = express.Router();
@@ -29,6 +29,22 @@ router.put('/update-profile-picture',
   handleMulterError,
   usersController.updateProfilePicture
 );
+
+// @desc    Upload profile picture with enhanced processing
+// @route   POST /api/users/profile/upload
+// @access  Private
+router.post('/profile/upload',
+  profileUploadRateLimit,
+  profileUploadAbuseProtection,
+  uploadProfileMemory.single('profilePicture'),
+  handleMulterError,
+  usersController.uploadProfilePictureEnhanced
+);
+
+// @desc    Delete profile picture
+// @route   DELETE /api/users/profile/image
+// @access  Private
+router.delete('/profile/image', usersController.deleteProfilePicture);
 
 // All remaining routes require librarian role
 router.use(requireLibrarian);

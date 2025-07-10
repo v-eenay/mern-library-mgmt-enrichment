@@ -1,8 +1,8 @@
 const express = require('express');
 const { authenticate, requireLibrarian } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
-const { uploadBookCover, handleMulterError } = require('../middleware/upload');
-const { bookCoverUploadRateLimit } = require('../middleware/uploadRateLimit');
+const { uploadBookCover, uploadBookCoverMemory, handleMulterError } = require('../middleware/upload');
+const { bookCoverUploadRateLimit, bookCoverUploadAbuseProtection } = require('../middleware/uploadRateLimit');
 const booksController = require('../controllers/booksController');
 
 const router = express.Router();
@@ -69,6 +69,37 @@ router.put('/:id/update-cover',
   uploadBookCover.single('coverImage'),
   handleMulterError,
   booksController.updateBookCover
+);
+
+// @desc    Upload book cover with enhanced processing
+// @route   POST /api/books/:id/cover
+// @access  Private (Librarian only)
+router.post('/:id/cover',
+  authenticate,
+  requireLibrarian,
+  bookCoverUploadRateLimit,
+  bookCoverUploadAbuseProtection,
+  uploadBookCoverMemory.single('coverImage'),
+  handleMulterError,
+  booksController.uploadBookCoverEnhanced
+);
+
+// @desc    Delete book cover image
+// @route   DELETE /api/books/:id/cover
+// @access  Private (Librarian only)
+router.delete('/:id/cover',
+  authenticate,
+  requireLibrarian,
+  booksController.deleteBookCover
+);
+
+// @desc    Cleanup orphaned image files
+// @route   POST /api/books/cleanup-orphaned-images
+// @access  Private (Librarian only)
+router.post('/cleanup-orphaned-images',
+  authenticate,
+  requireLibrarian,
+  booksController.cleanupOrphanedImages
 );
 
 module.exports = router;

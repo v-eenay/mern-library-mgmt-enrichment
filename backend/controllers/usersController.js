@@ -1,6 +1,13 @@
 const { User, Borrow } = require('../models');
 const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } = require('../utils/helpers');
-const { deleteFile, getFileUrl } = require('../middleware/upload');
+const {
+  deleteFile,
+  getFileUrl,
+  validateImageDimensions,
+  optimizeImage,
+  scanImageContent,
+  saveProcessedImage
+} = require('../middleware/upload');
 
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/users
@@ -272,6 +279,105 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Delete profile picture
+// @route   DELETE /api/users/profile/image
+// @access  Private
+const deleteProfilePicture = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return sendError(res, 'User not found', 404);
+  }
+
+  if (!user.profilePicture) {
+    return sendError(res, 'No profile picture to delete', 400);
+  }
+
+  // Delete the file from disk
+  try {
+    await deleteFile(user.profilePicture);
+  } catch (error) {
+    console.error('Error deleting profile picture file:', error);
+    // Continue with database update even if file deletion fails
+  }
+
+  // Remove profile picture from user record
+  user.profilePicture = null;
+  await user.save();
+
+  sendSuccess(res, 'Profile picture deleted successfully', {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePicture: null
+    }
+  });
+});
+
+// @desc    Upload profile picture with enhanced processing
+// @route   POST /api/users/profile/upload-enhanced
+// @access  Private
+const uploadProfilePictureEnhanced = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const userId = req.user._id;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return sendError(res, 'User not found', 404);
+  }
+
+  try {
+    // Validate image dimensions
+    await validateImageDimensions(req.file.buffer, 'profile');
+
+    // Scan for malicious content
+    await scanImageContent(req.file.buffer);
+
+    // Optimize image
+    const optimizedBuffer = await optimizeImage(req.file.buffer, 'profile');
+
+    // Save processed image
+    const imagePath = await saveProcessedImage(optimizedBuffer, 'profile', req.file.originalname);
+
+    // Delete old profile picture if it exists
+    if (user.profilePicture) {
+      await deleteFile(user.profilePicture).catch(err => {
+        console.error('Error deleting old profile picture:', err);
+      });
+    }
+
+    // Update user with new profile picture path
+    user.profilePicture = imagePath;
+    await user.save();
+
+    // Generate full URL for response
+    const profilePictureUrl = getFileUrl(req, imagePath);
+
+    sendSuccess(res, 'Profile picture uploaded and processed successfully', {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePicture: profilePictureUrl
+      },
+      processing: {
+        optimized: true,
+        scanned: true,
+        validated: true
+      }
+    });
+  } catch (error) {
+    return sendError(res, `Image processing failed: ${error.message}`, 400);
+  }
+});
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -280,5 +386,7 @@ module.exports = {
   deleteUser,
   getUserStats,
   uploadProfilePicture,
-  updateProfilePicture
+  updateProfilePicture,
+  deleteProfilePicture,
+  uploadProfilePictureEnhanced
 };

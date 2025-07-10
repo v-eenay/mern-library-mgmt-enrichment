@@ -62,11 +62,65 @@ const bookSchema = new mongoose.Schema({
         if (!value) return true; // Allow null/empty values
         // Allow URLs or local file paths
         const urlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-        const localPathPattern = /^uploads\/.+\.(jpg|jpeg|png|gif)$/i;
+        const localPathPattern = /^uploads\/.+\.(jpg|jpeg|png|gif|webp)$/i;
         return urlPattern.test(value) || localPathPattern.test(value);
       },
       message: 'Please enter a valid image URL or local file path'
     }
+  },
+  coverImageMetadata: {
+    originalName: {
+      type: String,
+      default: null
+    },
+    uploadDate: {
+      type: Date,
+      default: null
+    },
+    fileSize: {
+      type: Number,
+      default: null
+    },
+    mimeType: {
+      type: String,
+      default: null
+    },
+    dimensions: {
+      width: {
+        type: Number,
+        default: null
+      },
+      height: {
+        type: Number,
+        default: null
+      }
+    },
+    processed: {
+      type: Boolean,
+      default: false
+    }
+  },
+  // Rating fields for aggregated review data
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+    set: function(val) {
+      return Math.round(val * 10) / 10; // Round to 1 decimal place
+    }
+  },
+  totalReviews: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  ratingDistribution: {
+    1: { type: Number, default: 0 },
+    2: { type: Number, default: 0 },
+    3: { type: Number, default: 0 },
+    4: { type: Number, default: 0 },
+    5: { type: Number, default: 0 }
   },
   createdAt: {
     type: Date,
@@ -368,6 +422,14 @@ bookSchema.methods.returnBook = function() {
   } else {
     throw new Error('Cannot return more books than the total quantity');
   }
+};
+
+// Instance method to update rating data from review aggregation
+bookSchema.methods.updateRatingData = async function(ratingStats) {
+  this.averageRating = ratingStats.averageRating;
+  this.totalReviews = ratingStats.totalReviews;
+  this.ratingDistribution = ratingStats.ratingDistribution;
+  return this.save();
 };
 
 module.exports = mongoose.model('Book', bookSchema);

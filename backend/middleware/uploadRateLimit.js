@@ -87,6 +87,32 @@ const profileUploadRateLimit = rateLimit({
   }
 });
 
+// Enhanced abuse protection for profile uploads
+const profileUploadAbuseProtection = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Maximum 10 uploads per hour
+  message: {
+    status: 'error',
+    message: 'Hourly upload limit exceeded. Please try again later.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.user ? `profile_abuse_${req.user._id}` : `profile_abuse_${req.ip}`;
+  },
+  handler: (req, res) => {
+    // Log potential abuse
+    console.warn(`Profile upload abuse protection triggered for ${req.user ? `user ${req.user._id}` : `IP ${req.ip}`}`);
+
+    res.status(429).json({
+      status: 'error',
+      message: 'Hourly upload limit exceeded. This activity has been logged.',
+      retryAfter: '1 hour'
+    });
+  }
+});
+
 // Rate limiting for book cover uploads (librarian only, so can be more lenient)
 const bookCoverUploadRateLimit = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -154,9 +180,81 @@ const passwordChangeRateLimit = rateLimit({
   }
 });
 
+// Rate limiting for contact form submissions (anti-spam)
+const contactFormRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 contact form submissions per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many contact form submissions, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: true,
+  keyGenerator: (req) => {
+    // Use IP address for rate limiting
+    return `contact_form_${req.ip}`;
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      status: 'error',
+      message: 'Too many contact form submissions from this IP address, please try again later.',
+      retryAfter: '15 minutes'
+    });
+  }
+});
+
+// Stricter rate limiting for potential spam patterns
+const contactSpamProtection = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 submissions per hour
+  message: {
+    status: 'error',
+    message: 'Hourly contact form limit exceeded. Please try again later.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return `contact_spam_${req.ip}`;
+  }
+});
+
+// Enhanced abuse protection for book cover uploads
+const bookCoverUploadAbuseProtection = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 50, // Maximum 50 book cover uploads per hour (higher for librarians)
+  message: {
+    status: 'error',
+    message: 'Hourly book cover upload limit exceeded. Please try again later.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.user ? `book_abuse_${req.user._id}` : `book_abuse_${req.ip}`;
+  },
+  handler: (req, res) => {
+    // Log potential abuse
+    console.warn(`Book cover upload abuse protection triggered for ${req.user ? `user ${req.user._id}` : `IP ${req.ip}`}`);
+
+    res.status(429).json({
+      status: 'error',
+      message: 'Hourly book cover upload limit exceeded. This activity has been logged.',
+      retryAfter: '1 hour'
+    });
+  }
+});
+
 module.exports = {
   uploadRateLimit,
   profileUploadRateLimit,
+  profileUploadAbuseProtection,
   bookCoverUploadRateLimit,
-  passwordChangeRateLimit
+  bookCoverUploadAbuseProtection,
+  passwordChangeRateLimit,
+  contactFormRateLimit,
+  contactSpamProtection
 };
