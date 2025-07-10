@@ -12,70 +12,38 @@ class StartupDisplay {
   }
 
   /**
-   * Display complete startup information
+   * Display compact startup information
    */
   async displayStartup(port, environment = 'development') {
     try {
       // Clear console for clean display
       consoleUtils.clearConsole();
 
-      // Create ASCII art title
-      const title = await consoleUtils.createTitle('LIBRARY MGMT');
-      console.log(title);
+      // Simple title
+      const title = await consoleUtils.createTitle();
+      console.log('\n' + title);
 
-      // Create subtitle
-      const subtitle = consoleUtils.colors.bold.cyan('📚 Professional Library Management System 📚');
-      console.log(consoleUtils.createBox(subtitle, {
-        padding: 1,
-        margin: { top: 1, bottom: 1 },
-        borderColor: 'cyan',
-        textAlignment: 'center'
-      }));
-
-      // Server information
+      // Compact server info
       const url = `http://localhost:${port}`;
-      const serverStatus = consoleUtils.createServerStatus(port, environment, url);
-      console.log(consoleUtils.createBox(serverStatus, {
-        title: '🚀 Server Information',
-        borderColor: 'green',
-        padding: 1
-      }));
+      const startupTime = Date.now() - this.startTime;
 
-      // Database status
-      await this.displayDatabaseStatus();
+      console.log(consoleUtils.createSeparator('─', 60, 'cyan'));
+      console.log(`${consoleUtils.symbols.success} Server: ${consoleUtils.colors.success('Running')} | Port: ${consoleUtils.colors.highlight(port)} | Env: ${consoleUtils.colors.warning(environment.toUpperCase())}`);
+      console.log(`${consoleUtils.symbols.database} Database: ${await this.getDatabaseStatus()}`);
+      console.log(`${consoleUtils.symbols.rocket} Ready in ${startupTime}ms | ${consoleUtils.colors.highlight(url)}`);
 
-      // API endpoints
-      console.log(consoleUtils.createBox(consoleUtils.createEndpointsTable(), {
-        title: '🔗 Available API Endpoints',
-        borderColor: 'blue',
-        padding: 1
-      }));
+      // Compact endpoints info
+      console.log(consoleUtils.createSeparator('─', 60, 'cyan'));
+      console.log(`${consoleUtils.symbols.api} Endpoints: /health | /api/auth | /api/books | /api-docs`);
 
-      // Development mode info
-      if (environment === 'development') {
-        const devInfo = consoleUtils.createDevModeInfo();
-        console.log(consoleUtils.createBox(devInfo, {
-          title: '🔧 Development Mode Features',
-          borderColor: 'yellow',
-          padding: 1
-        }));
+      // Security warnings (compact)
+      const warnings = await this.getSecurityWarnings(environment);
+      if (warnings.length > 0) {
+        console.log(`${consoleUtils.symbols.warning} ${consoleUtils.colors.warning(warnings.join(' | '))}`);
       }
 
-      // Security warnings
-      await this.displaySecurityWarnings(environment);
-
-      // System information
-      this.displaySystemInfo();
-
-      // Footer with useful links
-      this.displayFooter(url);
-
-      // Startup complete message
-      const startupTime = Date.now() - this.startTime;
-      consoleUtils.logSuccess(`Server started successfully in ${startupTime}ms`);
-      
-      console.log(consoleUtils.createSeparator('═', 80, 'green'));
-      console.log(consoleUtils.colors.bold.green(`\n🎉 Library Management System is ready! Visit: ${consoleUtils.colors.highlight(url)}\n`));
+      console.log(consoleUtils.createSeparator('─', 60, 'green'));
+      console.log(consoleUtils.colors.bold.green(`🎉 Ready! Visit: ${consoleUtils.colors.highlight(url)}\n`));
 
     } catch (error) {
       consoleUtils.logError('Failed to display startup information', error);
@@ -83,105 +51,46 @@ class StartupDisplay {
   }
 
   /**
-   * Display database connection status
+   * Get compact database status
    */
-  async displayDatabaseStatus() {
+  async getDatabaseStatus() {
     try {
       const isConnected = mongoose.connection.readyState === 1;
-      const host = process.env.MONGODB_URI ? 
-        new URL(process.env.MONGODB_URI).host : 
-        'localhost:27017';
-      
-      const dbStatus = consoleUtils.createDatabaseStatus(isConnected, host);
-      
-      if (isConnected) {
-        console.log(consoleUtils.createBox(dbStatus, {
-          title: '🗄️ Database Status',
-          borderColor: 'green',
-          padding: 1
-        }));
-      } else {
-        console.log(consoleUtils.createBox(dbStatus, {
-          title: '🗄️ Database Status',
-          borderColor: 'red',
-          padding: 1
-        }));
-        consoleUtils.logWarning('Database connection not established. Some features may not work.');
-      }
+      return isConnected ?
+        consoleUtils.colors.success('Connected') :
+        consoleUtils.colors.error('Disconnected');
     } catch (error) {
-      consoleUtils.logError('Failed to check database status', error);
+      return consoleUtils.colors.error('Error');
     }
   }
 
   /**
-   * Display security warnings
+   * Get compact security warnings
    */
-  async displaySecurityWarnings(environment) {
+  async getSecurityWarnings(environment) {
     const warnings = [];
 
     // Check for default JWT secret
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key') {
-      warnings.push('Using default JWT secret - Change in production!');
+      warnings.push('Default JWT');
     }
 
     // Check for development environment
     if (environment === 'development') {
-      warnings.push('Running in development mode - Not suitable for production');
+      warnings.push('Dev Mode');
     }
 
     // Check for missing environment variables
     const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
     if (missingVars.length > 0) {
-      warnings.push(`Missing environment variables: ${missingVars.join(', ')}`);
+      warnings.push(`Missing: ${missingVars.join(', ')}`);
     }
 
-    // Display warnings if any
-    if (warnings.length > 0) {
-      const warningDisplay = consoleUtils.createSecurityWarnings(warnings);
-      console.log(warningDisplay);
-    } else if (environment === 'production') {
-      consoleUtils.logSuccess('Security configuration validated');
-    }
+    return warnings;
   }
 
-  /**
-   * Display system information
-   */
-  displaySystemInfo() {
-    const systemInfo = [
-      `${consoleUtils.symbols.gear} Node.js: ${process.version}`,
-      `${consoleUtils.symbols.book} App Version: v${version}`,
-      `${consoleUtils.symbols.info} Platform: ${process.platform}`,
-      `${consoleUtils.symbols.gear} Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
-    ];
 
-    const systemDisplay = systemInfo.map(info => consoleUtils.colors.muted(info)).join('\n');
-    console.log(consoleUtils.createBox(systemDisplay, {
-      title: '💻 System Information',
-      borderColor: 'gray',
-      padding: 1
-    }));
-  }
-
-  /**
-   * Display footer with useful links
-   */
-  displayFooter(baseUrl) {
-    const links = [
-      `📖 API Documentation: ${consoleUtils.colors.highlight(`${baseUrl}/api-docs`)}`,
-      `🏥 Health Check: ${consoleUtils.colors.highlight(`${baseUrl}/health`)}`,
-      `📚 Books API: ${consoleUtils.colors.highlight(`${baseUrl}/api/books`)}`,
-      `🔐 Authentication: ${consoleUtils.colors.highlight(`${baseUrl}/api/auth`)}`
-    ];
-
-    const footerContent = links.join('\n');
-    console.log(consoleUtils.createBox(footerContent, {
-      title: '🔗 Quick Links',
-      borderColor: 'cyan',
-      padding: 1
-    }));
-  }
 
   /**
    * Display shutdown message

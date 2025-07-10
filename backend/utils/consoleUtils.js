@@ -1,8 +1,6 @@
 const chalk = require('chalk');
 const boxen = require('boxen');
-const figlet = require('figlet');
 const Table = require('cli-table3');
-const gradient = require('gradient-string');
 
 /**
  * Professional Console Output Utilities for Library Management System
@@ -38,23 +36,10 @@ class ConsoleUtils {
   }
 
   /**
-   * Create ASCII art title
+   * Create simple title without ASCII art
    */
-  async createTitle(text = 'LIBRARY MGMT') {
-    return new Promise((resolve) => {
-      figlet(text, {
-        font: 'ANSI Shadow',
-        horizontalLayout: 'default',
-        verticalLayout: 'default'
-      }, (err, data) => {
-        if (err) {
-          // Fallback to simple text if figlet fails
-          resolve(chalk.bold.cyan(`\n${text}\n`));
-        } else {
-          resolve(gradient.rainbow(data));
-        }
-      });
-    });
+  async createTitle(text = 'LIBRARY MANAGEMENT SYSTEM') {
+    return this.colors.bold.cyan(`📚 ${text} 📚`);
   }
 
   /**

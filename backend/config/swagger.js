@@ -11,43 +11,7 @@ const swaggerDefinition = {
   info: {
     title: 'Library Management System API',
     version: '1.0.0',
-    description: `
-      A comprehensive, production-ready Library Management System backend built with Express.js, MongoDB, and modern security practices.
-      
-      ## Features
-      - **Multi-role User Management**: Borrowers, Librarians, and Administrators with distinct permissions
-      - **Comprehensive Book Management**: CRUD operations with advanced search and categorization
-      - **Borrowing System**: Complete lifecycle management of book loans with due dates and extensions
-      - **Review & Rating System**: User feedback and book rating aggregation
-      - **Image Upload System**: Profile pictures and book cover management with security scanning
-      - **Security-First Design**: JWT authentication, RBAC, rate limiting, and comprehensive validation
-      - **Audit Logging**: Complete audit trail for administrative actions and security events
-      
-      ## Authentication
-      This API uses JWT (JSON Web Tokens) for authentication. Tokens are provided in two ways:
-      1. **HTTP-only Cookies** (Recommended): Secure, XSS-resistant authentication
-      2. **Bearer Tokens**: For API clients and mobile applications
-      
-      ## Authorization
-      The system implements Role-Based Access Control (RBAC) with three user roles:
-      - **Borrower**: Can browse books, borrow/return books, write reviews, manage profile
-      - **Librarian**: Full library management including user management, book management, system statistics
-      - **Administrator**: System administration including security monitoring and bulk operations
-      
-      ## Rate Limiting
-      API endpoints are protected with rate limiting to prevent abuse:
-      - General API: 100 requests per 15 minutes
-      - Authentication: 5 attempts per 15 minutes
-      - File uploads: Specific limits per endpoint type
-      
-      ## Security Features
-      - JWT authentication with refresh tokens
-      - HTTP-only cookies for XSS protection
-      - CSRF protection via SameSite cookies
-      - Comprehensive input validation and sanitization
-      - File upload security with malicious content scanning
-      - Audit logging for all administrative actions
-    `,
+    description: 'Professional Library Management System API with JWT authentication, RBAC, and comprehensive book/user management.',
     contact: {
       name: 'Library Management System API Support',
       email: 'support@library-mgmt.com',
