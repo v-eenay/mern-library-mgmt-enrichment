@@ -8,6 +8,8 @@ const {
   scanImageContent,
   saveProcessedImage
 } = require('../middleware/upload');
+const { rbacService, PERMISSIONS } = require('../services/rbacService');
+const auditService = require('../services/auditService');
 
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/users
@@ -112,6 +114,25 @@ const updateUser = asyncHandler(async (req, res) => {
     return sendError(res, 'User not found', 404);
   }
 
+  // Store original values for audit logging
+  const originalValues = {
+    name: user.name,
+    email: user.email,
+    role: user.role
+  };
+
+  // Check role change permissions
+  if (role && role !== user.role) {
+    if (!rbacService.hasPermission(req.user, PERMISSIONS.USER_UPDATE_ROLE)) {
+      return sendError(res, 'Insufficient permissions to change user role', 403);
+    }
+
+    // Prevent role escalation beyond current user's level
+    if (!rbacService.hasHigherOrEqualRole(req.user, { role })) {
+      return sendError(res, 'Cannot assign role higher than your own', 403);
+    }
+  }
+
   // Check if email is being changed and if it already exists
   if (email && email !== user.email) {
     const existingUser = await User.findOne({ email });
@@ -125,6 +146,27 @@ const updateUser = asyncHandler(async (req, res) => {
   if (role) user.role = role;
 
   await user.save();
+
+  // Log audit event for role changes
+  if (role && role !== originalValues.role) {
+    await auditService.logEvent({
+      userId: req.user._id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: 'USER_ROLE_CHANGE',
+      resourceType: 'User',
+      resourceId: user._id,
+      targetUserId: user._id,
+      details: {
+        oldRole: originalValues.role,
+        newRole: role,
+        changedBy: req.user.email
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      severity: 'HIGH'
+    });
+  }
 
   sendSuccess(res, 'User updated successfully', {
     user: {

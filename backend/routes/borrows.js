@@ -1,6 +1,13 @@
 const express = require('express');
-const { authenticate, requireLibrarian } = require('../middleware/auth');
+const {
+  authenticate,
+  requireLibrarian,
+  requirePermission,
+  requireResourceOwnership
+} = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
+const { PERMISSIONS } = require('../services/rbacService');
+const auditService = require('../services/auditService');
 const borrowsController = require('../controllers/borrowsController');
 
 const router = express.Router();
@@ -10,18 +17,32 @@ router.use(authenticate);
 
 // @desc    Borrow a book
 // @route   POST /api/borrows
-// @access  Private
-router.post('/', validationMiddleware.borrowBook, borrowsController.borrowBook);
+// @access  Private (Borrowers only)
+router.post('/',
+  requirePermission(PERMISSIONS.BORROW_CREATE),
+  validationMiddleware.borrowBook,
+  auditService.createAuditMiddleware('BORROW_CREATE', 'Borrow', 'MEDIUM'),
+  borrowsController.borrowBook
+);
 
 // @desc    Return a book
 // @route   PUT /api/borrows/:id/return
-// @access  Private
-router.put('/:id/return', borrowsController.returnBook);
+// @access  Private (Own borrows or Librarian)
+router.put('/:id/return',
+  requireResourceOwnership('id', PERMISSIONS.BORROW_UPDATE_OWN, PERMISSIONS.BORROW_UPDATE_ANY),
+  auditService.createAuditMiddleware('BORROW_RETURN', 'Borrow', 'MEDIUM'),
+  borrowsController.returnBook
+);
 
 // @desc    Extend due date for a borrow
 // @route   PUT /api/borrows/:id/extend
 // @access  Private (Librarian only)
-router.put('/:id/extend', requireLibrarian, validationMiddleware.extendDueDate, borrowsController.extendDueDate);
+router.put('/:id/extend',
+  requirePermission(PERMISSIONS.BORROW_EXTEND),
+  validationMiddleware.extendDueDate,
+  auditService.createAuditMiddleware('BORROW_EXTEND', 'Borrow', 'MEDIUM'),
+  borrowsController.extendDueDate
+);
 
 // @desc    Get user's borrow history
 // @route   GET /api/borrows/my-borrows

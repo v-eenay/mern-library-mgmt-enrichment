@@ -1,5 +1,6 @@
 const { Borrow, Book, User } = require('../models');
 const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } = require('../utils/helpers');
+const { rbacService, PERMISSIONS } = require('../services/rbacService');
 
 // @desc    Borrow a book
 // @route   POST /api/borrows
@@ -201,7 +202,7 @@ const getAllBorrows = asyncHandler(async (req, res) => {
 
 // @desc    Get borrow by ID
 // @route   GET /api/borrows/:id
-// @access  Private
+// @access  Private (Own borrows or Librarian)
 const getBorrowById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -217,9 +218,14 @@ const getBorrowById = asyncHandler(async (req, res) => {
     return sendError(res, 'Borrow record not found', 404);
   }
 
-  // Check if user can access this borrow record
-  if (req.user.role !== 'librarian' && borrow.userId._id.toString() !== req.user._id.toString()) {
-    return sendError(res, 'Access denied', 403);
+  // Enhanced resource ownership check using RBAC
+  if (!rbacService.canAccessResource(
+    req.user,
+    borrow,
+    PERMISSIONS.BORROW_READ_OWN,
+    PERMISSIONS.BORROW_READ_ALL
+  )) {
+    return sendError(res, 'Access denied. You can only view your own borrow records.', 403);
   }
 
   sendSuccess(res, 'Borrow record retrieved successfully', { borrow });

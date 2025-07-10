@@ -1,8 +1,17 @@
 const express = require('express');
-const { authenticate, requireLibrarian } = require('../middleware/auth');
+const {
+  authenticate,
+  requireLibrarian,
+  requirePermission,
+  requireMinimumRole,
+  optionalAuthenticate
+} = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
 const { uploadBookCover, uploadBookCoverMemory, handleMulterError } = require('../middleware/upload');
 const { bookCoverUploadRateLimit, bookCoverUploadAbuseProtection } = require('../middleware/uploadRateLimit');
+const { PERMISSIONS } = require('../services/rbacService');
+const auditService = require('../services/auditService');
+const securityMiddleware = require('../middleware/securityMiddleware');
 const booksController = require('../controllers/booksController');
 
 const router = express.Router();
@@ -35,17 +44,34 @@ router.get('/:id', booksController.getBookById);
 // @desc    Create new book
 // @route   POST /api/books
 // @access  Private (Librarian only)
-router.post('/', authenticate, requireLibrarian, validationMiddleware.createBook, booksController.createBook);
+router.post('/',
+  authenticate,
+  requirePermission(PERMISSIONS.BOOK_CREATE),
+  validationMiddleware.createBook,
+  auditService.createAuditMiddleware('BOOK_CREATE', 'Book', 'MEDIUM'),
+  booksController.createBook
+);
 
 // @desc    Update book
 // @route   PUT /api/books/:id
 // @access  Private (Librarian only)
-router.put('/:id', authenticate, requireLibrarian, validationMiddleware.updateBook, booksController.updateBook);
+router.put('/:id',
+  authenticate,
+  requirePermission(PERMISSIONS.BOOK_UPDATE),
+  validationMiddleware.updateBook,
+  auditService.createAuditMiddleware('BOOK_UPDATE', 'Book', 'MEDIUM'),
+  booksController.updateBook
+);
 
 // @desc    Delete book
 // @route   DELETE /api/books/:id
 // @access  Private (Librarian only)
-router.delete('/:id', authenticate, requireLibrarian, booksController.deleteBook);
+router.delete('/:id',
+  authenticate,
+  requirePermission(PERMISSIONS.BOOK_DELETE),
+  auditService.createAuditMiddleware('BOOK_DELETE', 'Book', 'HIGH'),
+  booksController.deleteBook
+);
 
 // @desc    Upload book cover image
 // @route   POST /api/books/:id/upload-cover

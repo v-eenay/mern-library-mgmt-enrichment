@@ -183,7 +183,8 @@ const {
   borrowsRoutes,
   categoriesRoutes,
   contactRoutes,
-  reviewsRoutes
+  reviewsRoutes,
+  rbacRoutes
 } = require('./routes');
 
 // API routes
@@ -194,6 +195,7 @@ app.use('/api/borrows', borrowsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/rbac', rbacRoutes);
 
 // 404 handler
 app.use((req, res) => {

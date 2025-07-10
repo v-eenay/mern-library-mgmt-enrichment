@@ -13,6 +13,7 @@ const categoriesRoutes = require('./categories');
 const contactRoutes = require('./contact');
 const reviewsRoutes = require('./reviews');
 const usersRoutes = require('./users');
+const rbacRoutes = require('./rbac');
 
 /**
  * Export all route modules
@@ -25,5 +26,6 @@ module.exports = {
   categoriesRoutes,
   contactRoutes,
   reviewsRoutes,
-  usersRoutes
+  usersRoutes,
+  rbacRoutes
 };

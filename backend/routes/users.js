@@ -1,9 +1,17 @@
 const express = require('express');
-const { authenticate, requireLibrarian } = require('../middleware/auth');
+const {
+  authenticate,
+  requireLibrarian,
+  requirePermission,
+  requireResourceOwnership,
+  requireMinimumRole
+} = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
 const { uploadProfile, uploadProfileMemory, handleMulterError } = require('../middleware/upload');
 const { profileUploadRateLimit, profileUploadAbuseProtection, authRateLimit } = require('../middleware/uploadRateLimit');
 const securityMiddleware = require('../middleware/securityMiddleware');
+const { PERMISSIONS } = require('../services/rbacService');
+const auditService = require('../services/auditService');
 const usersController = require('../controllers/usersController');
 
 const router = express.Router();
@@ -13,12 +21,14 @@ router.use(authenticate);
 
 // @desc    Upload profile picture
 // @route   POST /api/users/upload-profile-picture
-// @access  Private
+// @access  Private (Own profile only)
 router.post('/upload-profile-picture',
+  requirePermission(PERMISSIONS.FILE_UPLOAD_PROFILE),
   profileUploadRateLimit,
   securityMiddleware.fileUploadSecurity(['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'], 5 * 1024 * 1024),
   uploadProfile.single('profilePicture'),
   handleMulterError,
+  auditService.createAuditMiddleware('FILE_UPLOAD_PROFILE', 'File', 'MEDIUM'),
   usersController.uploadProfilePicture
 );
 
@@ -45,26 +55,40 @@ router.post('/profile/upload',
 
 // @desc    Delete profile picture
 // @route   DELETE /api/users/profile/image
-// @access  Private
-router.delete('/profile/image', usersController.deleteProfilePicture);
+// @access  Private (Own profile only)
+router.delete('/profile/image',
+  requirePermission(PERMISSIONS.FILE_DELETE_OWN),
+  auditService.createAuditMiddleware('FILE_DELETE_OWN', 'File', 'MEDIUM'),
+  usersController.deleteProfilePicture
+);
 
-// All remaining routes require librarian role
-router.use(requireLibrarian);
+// All remaining routes require librarian role or higher
+router.use(requireMinimumRole('librarian'));
 
 // @desc    Get all users with pagination and filtering
 // @route   GET /api/users
 // @access  Private (Librarian only)
-router.get('/', validationMiddleware.pagination, usersController.getAllUsers);
+router.get('/',
+  requirePermission(PERMISSIONS.USER_READ_ALL),
+  validationMiddleware.pagination,
+  usersController.getAllUsers
+);
 
 // @desc    Get user statistics
 // @route   GET /api/users/stats/overview
 // @access  Private (Librarian only)
-router.get('/stats/overview', usersController.getUserStats);
+router.get('/stats/overview',
+  requirePermission(PERMISSIONS.SYSTEM_STATS),
+  usersController.getUserStats
+);
 
 // @desc    Get user by ID
 // @route   GET /api/users/:id
 // @access  Private (Librarian only)
-router.get('/:id', usersController.getUserById);
+router.get('/:id',
+  requirePermission(PERMISSIONS.USER_READ),
+  usersController.getUserById
+);
 
 // @desc    Create new user
 // @route   POST /api/users
