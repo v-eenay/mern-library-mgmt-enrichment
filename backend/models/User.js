@@ -37,7 +37,49 @@ const userSchema = new mongoose.Schema({
   profilePicture: {
     type: String,
     default: null,
-    trim: true
+    trim: true,
+    validate: {
+      validator: function(value) {
+        if (!value) return true; // Allow null/empty values
+        // Allow URLs or local file paths
+        const urlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
+        const localPathPattern = /^uploads\/.+\.(jpg|jpeg|png|gif|webp)$/i;
+        return urlPattern.test(value) || localPathPattern.test(value);
+      },
+      message: 'Please enter a valid image URL or local file path'
+    }
+  },
+  profileImageMetadata: {
+    originalName: {
+      type: String,
+      default: null
+    },
+    uploadDate: {
+      type: Date,
+      default: null
+    },
+    fileSize: {
+      type: Number,
+      default: null
+    },
+    mimeType: {
+      type: String,
+      default: null
+    },
+    dimensions: {
+      width: {
+        type: Number,
+        default: null
+      },
+      height: {
+        type: Number,
+        default: null
+      }
+    },
+    processed: {
+      type: Boolean,
+      default: false
+    }
   },
   createdAt: {
     type: Date,

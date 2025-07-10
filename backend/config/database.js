@@ -1,34 +1,35 @@
 const mongoose = require('mongoose');
 const colors = require('colors');
+const consoleUtils = require('../utils/consoleUtils');
 
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI);
-
-    console.log('✓'.green, 'MongoDB Connected:'.cyan, conn.connection.host.yellow);
+    // Success message will be handled by the startup display
+    return conn;
   } catch (error) {
-    console.log('✗'.red, 'Database connection error:'.red, error.message);
+    consoleUtils.logError('Database connection failed', error);
     process.exit(1);
   }
 };
 
 // Handle connection events
 mongoose.connection.on('connected', () => {
-  console.log('✓'.green, 'Mongoose connected to MongoDB'.cyan);
+  // Connection success is handled by startup display
 });
 
 mongoose.connection.on('error', (err) => {
-  console.log('✗'.red, 'Mongoose connection error:'.red, err);
+  consoleUtils.logError('Database connection error', err);
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠'.yellow, 'Mongoose disconnected'.yellow);
+  consoleUtils.logWarning('Database disconnected');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
   await mongoose.connection.close();
-  console.log('⚠'.yellow, 'MongoDB connection closed through app termination'.yellow);
+  consoleUtils.logInfo('Database connection closed');
   process.exit(0);
 });
 

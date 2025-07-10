@@ -1,63 +1,117 @@
 const { Book, Review, Borrow } = require('../models');
 const { sendSuccess, sendError, asyncHandler, isValidObjectId, getPagination } = require('../utils/helpers');
-const { deleteFile, getFileUrl } = require('../middleware/upload');
+const {
+  deleteFile,
+  getFileUrl,
+  validateImageDimensions,
+  optimizeImage,
+  scanImageContent,
+  saveProcessedImage
+} = require('../middleware/upload');
 
-// @desc    Get all books with pagination, search, and filtering
+// @desc    Get all books with advanced search, filtering, and pagination
 // @route   GET /api/books
 // @access  Public
 const getAllBooks = asyncHandler(async (req, res) => {
-  const { 
-    page = 0, 
-    limit = 10, 
-    category, 
-    search, 
-    available, 
-    sortBy = 'createdAt', 
-    sortOrder = 'desc' 
+  const startTime = Date.now();
+
+  // Extract all search parameters
+  const {
+    page = 0,
+    limit = 10,
+    q,
+    search,
+    title,
+    author,
+    isbn,
+    category,
+    available,
+    minQuantity,
+    maxQuantity,
+    dateFrom,
+    dateTo,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
   } = req.query;
-  
-  const { limit: pageLimit, offset } = getPagination(page, limit);
 
-  // Build query
-  let query = {};
-  if (category) query.category = new RegExp(category, 'i');
-  if (available === 'true') query.available = { $gt: 0 };
-  if (search) {
-    query.$or = [
-      { title: new RegExp(search, 'i') },
-      { author: new RegExp(search, 'i') },
-      { isbn: new RegExp(search, 'i') }
-    ];
-  }
+  // Prepare search parameters for the model
+  const searchParams = {
+    q,
+    search,
+    title,
+    author,
+    isbn,
+    category,
+    available,
+    minQuantity,
+    maxQuantity,
+    dateFrom,
+    dateTo,
+    sortBy,
+    sortOrder,
+    page: parseInt(page),
+    limit: parseInt(limit)
+  };
 
-  // Build sort
-  const sort = {};
-  sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  // Perform advanced search
+  const [books, total] = await Promise.all([
+    Book.advancedSearch(searchParams),
+    Book.countAdvancedSearch(searchParams)
+  ]);
 
-  const books = await Book.find(query)
-    .sort(sort)
-    .limit(pageLimit)
-    .skip(offset);
-
-  const total = await Book.countDocuments(query);
-
-  // Generate full URLs for cover images
+  // Generate full URLs for cover images and add search metadata
   const booksWithUrls = books.map(book => {
-    const bookObj = book.toObject();
+    const bookObj = book._id ? book : { ...book }; // Handle aggregation results
     if (bookObj.coverImage) {
       bookObj.coverImage = getFileUrl(req, bookObj.coverImage);
     }
     return bookObj;
   });
 
+  // Calculate performance metrics for development
+  const searchTime = Date.now() - startTime;
+
+  // Build search metadata
+  const searchMetadata = {
+    searchTerms: {
+      general: q || search || null,
+      title: title || null,
+      author: author || null,
+      isbn: isbn || null
+    },
+    filtersApplied: {
+      category: category || null,
+      available: available || null,
+      quantityRange: (minQuantity || maxQuantity) ? { min: minQuantity, max: maxQuantity } : null,
+      dateRange: (dateFrom || dateTo) ? { from: dateFrom, to: dateTo } : null
+    },
+    sorting: {
+      field: sortBy,
+      order: sortOrder
+    },
+    performance: process.env.NODE_ENV === 'development' ? {
+      searchTime: `${searchTime}ms`,
+      totalResults: total,
+      resultsPerPage: parseInt(limit)
+    } : undefined
+  };
+
+  // Calculate pagination
+  const pageLimit = parseInt(limit);
+  const currentPage = parseInt(page);
+  const totalPages = Math.ceil(total / pageLimit);
+
   sendSuccess(res, 'Books retrieved successfully', {
     books: booksWithUrls,
     pagination: {
       total,
-      page: parseInt(page),
+      page: currentPage,
       limit: pageLimit,
-      totalPages: Math.ceil(total / pageLimit)
-    }
+      totalPages,
+      hasNextPage: currentPage < totalPages - 1,
+      hasPrevPage: currentPage > 0
+    },
+    search: searchMetadata
   });
 });
 
@@ -213,6 +267,148 @@ const getBooksByCategory = asyncHandler(async (req, res) => {
   sendSuccess(res, 'Books by category retrieved successfully', { books, category });
 });
 
+// @desc    Advanced search books with comprehensive filtering
+// @route   GET /api/books/search/advanced
+// @access  Public
+const advancedSearchBooks = asyncHandler(async (req, res) => {
+  const startTime = Date.now();
+
+  // Extract all search parameters with more detailed handling
+  const {
+    page = 0,
+    limit = 10,
+    q,
+    search,
+    title,
+    author,
+    isbn,
+    category,
+    available,
+    minQuantity,
+    maxQuantity,
+    dateFrom,
+    dateTo,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = req.query;
+
+  // Validate date range
+  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+    return sendError(res, 'Date from cannot be later than date to', 400);
+  }
+
+  // Validate quantity range
+  if (minQuantity && maxQuantity && parseInt(minQuantity) > parseInt(maxQuantity)) {
+    return sendError(res, 'Minimum quantity cannot be greater than maximum quantity', 400);
+  }
+
+  // Prepare search parameters
+  const searchParams = {
+    q,
+    search,
+    title,
+    author,
+    isbn,
+    category,
+    available,
+    minQuantity,
+    maxQuantity,
+    dateFrom,
+    dateTo,
+    sortBy,
+    sortOrder,
+    page: parseInt(page),
+    limit: parseInt(limit)
+  };
+
+  try {
+    // Perform advanced search with error handling
+    const [books, total] = await Promise.all([
+      Book.advancedSearch(searchParams),
+      Book.countAdvancedSearch(searchParams)
+    ]);
+
+    // Process results
+    const booksWithUrls = books.map(book => {
+      const bookObj = book._id ? book : { ...book };
+      if (bookObj.coverImage) {
+        bookObj.coverImage = getFileUrl(req, bookObj.coverImage);
+      }
+      // Add search score if available
+      if (book.score !== undefined) {
+        bookObj.searchScore = book.score;
+      }
+      return bookObj;
+    });
+
+    // Performance metrics
+    const searchTime = Date.now() - startTime;
+
+    // Detailed search metadata
+    const searchMetadata = {
+      query: {
+        fullText: q || search || null,
+        fields: {
+          title: title || null,
+          author: author || null,
+          isbn: isbn || null
+        }
+      },
+      filters: {
+        category: category ? (Array.isArray(category) ? category : [category]) : null,
+        availability: available || null,
+        quantityRange: (minQuantity || maxQuantity) ? {
+          min: minQuantity ? parseInt(minQuantity) : null,
+          max: maxQuantity ? parseInt(maxQuantity) : null
+        } : null,
+        dateRange: (dateFrom || dateTo) ? {
+          from: dateFrom || null,
+          to: dateTo || null
+        } : null
+      },
+      sorting: {
+        field: sortBy,
+        order: sortOrder,
+        textScoreUsed: !!(q || search)
+      },
+      results: {
+        total,
+        returned: booksWithUrls.length,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      },
+      performance: process.env.NODE_ENV === 'development' ? {
+        searchTime: `${searchTime}ms`,
+        indexesUsed: !!(q || search) ? ['text_index'] : ['standard_indexes']
+      } : undefined
+    };
+
+    // Enhanced pagination
+    const pageLimit = parseInt(limit);
+    const currentPage = parseInt(page);
+    const totalPages = Math.ceil(total / pageLimit);
+
+    sendSuccess(res, 'Advanced search completed successfully', {
+      books: booksWithUrls,
+      pagination: {
+        total,
+        page: currentPage,
+        limit: pageLimit,
+        totalPages,
+        hasNextPage: currentPage < totalPages - 1,
+        hasPrevPage: currentPage > 0,
+        nextPage: currentPage < totalPages - 1 ? currentPage + 1 : null,
+        prevPage: currentPage > 0 ? currentPage - 1 : null
+      },
+      search: searchMetadata
+    });
+
+  } catch (error) {
+    console.error('Advanced search error:', error);
+    return sendError(res, 'Search operation failed. Please try again.', 500);
+  }
+});
+
 // @desc    Upload book cover image
 // @route   POST /api/books/:id/upload-cover
 // @access  Private (Librarian only)
@@ -309,6 +505,122 @@ const updateBookCover = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Delete book cover image
+// @route   DELETE /api/books/:id/cover
+// @access  Private (Librarian only)
+const deleteBookCover = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    return sendError(res, 'Invalid book ID', 400);
+  }
+
+  const book = await Book.findById(id);
+  if (!book) {
+    return sendError(res, 'Book not found', 404);
+  }
+
+  if (!book.coverImage) {
+    return sendError(res, 'No cover image to delete', 400);
+  }
+
+  // Delete the file from disk if it's a local file
+  if (book.coverImage.startsWith('uploads/')) {
+    try {
+      await deleteFile(book.coverImage);
+    } catch (error) {
+      console.error('Error deleting cover image file:', error);
+      // Continue with database update even if file deletion fails
+    }
+  }
+
+  // Remove cover image from book record
+  book.coverImage = null;
+  await book.save();
+
+  sendSuccess(res, 'Book cover deleted successfully', {
+    book: book.toObject()
+  });
+});
+
+// @desc    Upload book cover with enhanced processing
+// @route   POST /api/books/:id/cover-enhanced
+// @access  Private (Librarian only)
+const uploadBookCoverEnhanced = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    return sendError(res, 'Invalid book ID', 400);
+  }
+
+  if (!req.file) {
+    return sendError(res, 'No file uploaded', 400);
+  }
+
+  const book = await Book.findById(id);
+  if (!book) {
+    return sendError(res, 'Book not found', 404);
+  }
+
+  try {
+    // Validate image dimensions
+    await validateImageDimensions(req.file.buffer, 'book');
+
+    // Scan for malicious content
+    await scanImageContent(req.file.buffer);
+
+    // Optimize image
+    const optimizedBuffer = await optimizeImage(req.file.buffer, 'book');
+
+    // Save processed image
+    const imagePath = await saveProcessedImage(optimizedBuffer, 'book', req.file.originalname);
+
+    // Delete old cover image if it exists and it's a local file
+    if (book.coverImage && book.coverImage.startsWith('uploads/')) {
+      await deleteFile(book.coverImage).catch(err => {
+        console.error('Error deleting old cover image:', err);
+      });
+    }
+
+    // Update book with new cover image path
+    book.coverImage = imagePath;
+    await book.save();
+
+    // Generate full URL for response
+    const coverImageUrl = getFileUrl(req, imagePath);
+
+    sendSuccess(res, 'Book cover uploaded and processed successfully', {
+      book: {
+        ...book.toObject(),
+        coverImage: coverImageUrl
+      },
+      processing: {
+        optimized: true,
+        scanned: true,
+        validated: true
+      }
+    });
+  } catch (error) {
+    return sendError(res, `Image processing failed: ${error.message}`, 400);
+  }
+});
+
+// @desc    Cleanup orphaned image files
+// @route   POST /api/books/cleanup-orphaned-images
+// @access  Private (Librarian only)
+const cleanupOrphanedImages = asyncHandler(async (req, res) => {
+  try {
+    const { cleanupOrphanedFiles } = require('../middleware/upload');
+    const result = await cleanupOrphanedFiles();
+
+    sendSuccess(res, 'Orphaned image cleanup completed', {
+      cleanup: result
+    });
+  } catch (error) {
+    return sendError(res, `Cleanup failed: ${error.message}`, 500);
+  }
+});
+
 module.exports = {
   getAllBooks,
   getBookById,
@@ -317,6 +629,10 @@ module.exports = {
   deleteBook,
   getAvailableBooks,
   getBooksByCategory,
+  advancedSearchBooks,
   uploadBookCover,
-  updateBookCover
+  updateBookCover,
+  deleteBookCover,
+  uploadBookCoverEnhanced,
+  cleanupOrphanedImages
 };

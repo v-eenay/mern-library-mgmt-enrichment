@@ -62,11 +62,65 @@ const bookSchema = new mongoose.Schema({
         if (!value) return true; // Allow null/empty values
         // Allow URLs or local file paths
         const urlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-        const localPathPattern = /^uploads\/.+\.(jpg|jpeg|png|gif)$/i;
+        const localPathPattern = /^uploads\/.+\.(jpg|jpeg|png|gif|webp)$/i;
         return urlPattern.test(value) || localPathPattern.test(value);
       },
       message: 'Please enter a valid image URL or local file path'
     }
+  },
+  coverImageMetadata: {
+    originalName: {
+      type: String,
+      default: null
+    },
+    uploadDate: {
+      type: Date,
+      default: null
+    },
+    fileSize: {
+      type: Number,
+      default: null
+    },
+    mimeType: {
+      type: String,
+      default: null
+    },
+    dimensions: {
+      width: {
+        type: Number,
+        default: null
+      },
+      height: {
+        type: Number,
+        default: null
+      }
+    },
+    processed: {
+      type: Boolean,
+      default: false
+    }
+  },
+  // Rating fields for aggregated review data
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+    set: function(val) {
+      return Math.round(val * 10) / 10; // Round to 1 decimal place
+    }
+  },
+  totalReviews: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  ratingDistribution: {
+    1: { type: Number, default: 0 },
+    2: { type: Number, default: 0 },
+    3: { type: Number, default: 0 },
+    4: { type: Number, default: 0 },
+    5: { type: Number, default: 0 }
   },
   createdAt: {
     type: Date,
@@ -94,10 +148,29 @@ bookSchema.index({ author: 1 });
 bookSchema.index({ category: 1 });
 bookSchema.index({ available: 1 });
 bookSchema.index({ createdAt: -1 });
+bookSchema.index({ isbn: 1 });
+
+// Text index for full-text search across multiple fields
+bookSchema.index({
+  title: 'text',
+  author: 'text',
+  description: 'text',
+  category: 'text'
+}, {
+  weights: {
+    title: 10,
+    author: 5,
+    category: 3,
+    description: 1
+  },
+  name: 'book_text_index'
+});
 
 // Compound indexes for common queries
 bookSchema.index({ category: 1, available: 1 });
 bookSchema.index({ author: 1, title: 1 });
+bookSchema.index({ available: 1, createdAt: -1 });
+bookSchema.index({ quantity: 1, available: 1 });
 
 // Pre-save middleware to set available count to quantity if not provided
 bookSchema.pre('save', function(next) {
@@ -132,6 +205,200 @@ bookSchema.statics.findByCategory = function(category) {
   return this.find({ category: new RegExp(category, 'i') });
 };
 
+// Advanced search static method
+bookSchema.statics.advancedSearch = function(searchParams) {
+  const {
+    q,
+    search,
+    title,
+    author,
+    isbn,
+    category,
+    available,
+    minQuantity,
+    maxQuantity,
+    dateFrom,
+    dateTo,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+    page = 0,
+    limit = 10
+  } = searchParams;
+
+  // Build aggregation pipeline
+  const pipeline = [];
+
+  // Match stage for filtering
+  const matchConditions = {};
+
+  // Text search across multiple fields
+  const searchTerm = q || search;
+  if (searchTerm) {
+    matchConditions.$text = { $search: searchTerm };
+  }
+
+  // Specific field searches
+  if (title) {
+    matchConditions.title = new RegExp(title, 'i');
+  }
+
+  if (author) {
+    matchConditions.author = new RegExp(author, 'i');
+  }
+
+  if (isbn) {
+    matchConditions.isbn = new RegExp(isbn, 'i');
+  }
+
+  // Category filtering (support multiple categories)
+  if (category) {
+    if (Array.isArray(category)) {
+      matchConditions.category = { $in: category.map(cat => new RegExp(cat, 'i')) };
+    } else {
+      matchConditions.category = new RegExp(category, 'i');
+    }
+  }
+
+  // Availability filtering
+  if (available !== undefined) {
+    if (available === 'true' || available === true) {
+      matchConditions.available = { $gt: 0 };
+    } else if (available === 'false' || available === false) {
+      matchConditions.available = { $eq: 0 };
+    }
+    // If available === 'all', no filter is applied
+  }
+
+  // Quantity range filtering
+  if (minQuantity !== undefined || maxQuantity !== undefined) {
+    matchConditions.quantity = {};
+    if (minQuantity !== undefined) {
+      matchConditions.quantity.$gte = parseInt(minQuantity);
+    }
+    if (maxQuantity !== undefined) {
+      matchConditions.quantity.$lte = parseInt(maxQuantity);
+    }
+  }
+
+  // Date range filtering
+  if (dateFrom || dateTo) {
+    matchConditions.createdAt = {};
+    if (dateFrom) {
+      matchConditions.createdAt.$gte = new Date(dateFrom);
+    }
+    if (dateTo) {
+      matchConditions.createdAt.$lte = new Date(dateTo);
+    }
+  }
+
+  // Add match stage if there are conditions
+  if (Object.keys(matchConditions).length > 0) {
+    pipeline.push({ $match: matchConditions });
+  }
+
+  // Add text score for text search
+  if (searchTerm) {
+    pipeline.push({
+      $addFields: {
+        score: { $meta: 'textScore' }
+      }
+    });
+  }
+
+  // Sort stage
+  const sortStage = {};
+  if (searchTerm) {
+    // Sort by text score first, then by specified field
+    sortStage.score = { $meta: 'textScore' };
+    sortStage[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  } else {
+    sortStage[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  }
+  pipeline.push({ $sort: sortStage });
+
+  // Pagination
+  const skip = parseInt(page) * parseInt(limit);
+  pipeline.push({ $skip: skip });
+  pipeline.push({ $limit: parseInt(limit) });
+
+  return this.aggregate(pipeline);
+};
+
+// Count documents for advanced search
+bookSchema.statics.countAdvancedSearch = function(searchParams) {
+  const {
+    q,
+    search,
+    title,
+    author,
+    isbn,
+    category,
+    available,
+    minQuantity,
+    maxQuantity,
+    dateFrom,
+    dateTo
+  } = searchParams;
+
+  // Build match conditions (same as in advancedSearch)
+  const matchConditions = {};
+
+  const searchTerm = q || search;
+  if (searchTerm) {
+    matchConditions.$text = { $search: searchTerm };
+  }
+
+  if (title) {
+    matchConditions.title = new RegExp(title, 'i');
+  }
+
+  if (author) {
+    matchConditions.author = new RegExp(author, 'i');
+  }
+
+  if (isbn) {
+    matchConditions.isbn = new RegExp(isbn, 'i');
+  }
+
+  if (category) {
+    if (Array.isArray(category)) {
+      matchConditions.category = { $in: category.map(cat => new RegExp(cat, 'i')) };
+    } else {
+      matchConditions.category = new RegExp(category, 'i');
+    }
+  }
+
+  if (available !== undefined) {
+    if (available === 'true' || available === true) {
+      matchConditions.available = { $gt: 0 };
+    } else if (available === 'false' || available === false) {
+      matchConditions.available = { $eq: 0 };
+    }
+  }
+
+  if (minQuantity !== undefined || maxQuantity !== undefined) {
+    matchConditions.quantity = {};
+    if (minQuantity !== undefined) {
+      matchConditions.quantity.$gte = parseInt(minQuantity);
+    }
+    if (maxQuantity !== undefined) {
+      matchConditions.quantity.$lte = parseInt(maxQuantity);
+    }
+  }
+
+  if (dateFrom || dateTo) {
+    matchConditions.createdAt = {};
+    if (dateFrom) {
+      matchConditions.createdAt.$gte = new Date(dateFrom);
+    }
+    if (dateTo) {
+      matchConditions.createdAt.$lte = new Date(dateTo);
+    }
+  }
+
+  return this.countDocuments(matchConditions);
+};
+
 // Instance method to check if book is available
 bookSchema.methods.isAvailable = function() {
   return this.available > 0;
@@ -155,6 +422,14 @@ bookSchema.methods.returnBook = function() {
   } else {
     throw new Error('Cannot return more books than the total quantity');
   }
+};
+
+// Instance method to update rating data from review aggregation
+bookSchema.methods.updateRatingData = async function(ratingStats) {
+  this.averageRating = ratingStats.averageRating;
+  this.totalReviews = ratingStats.totalReviews;
+  this.ratingDistribution = ratingStats.ratingDistribution;
+  return this.save();
 };
 
 module.exports = mongoose.model('Book', bookSchema);
