@@ -19,13 +19,23 @@ const { applyMiddleware, applyErrorHandling } = require('./config/middleware');
 const { swaggerSpec, swaggerUi, swaggerUiOptions } = require('./config/swagger');
 const { DEFAULTS } = require('./utils/constants');
 
+// Import console utilities for professional output
+const consoleUtils = require('./utils/consoleUtils');
+const startupDisplay = require('./utils/startupDisplay');
+
 // Import models to ensure they are registered
 require('./models');
 
 const app = express();
 
-// Connect to database
-connectDB();
+// Connect to database with enhanced logging
+connectDB()
+  .then(() => {
+    consoleUtils.logSuccess('Database connected successfully');
+  })
+  .catch((error) => {
+    consoleUtils.logError('Database connection failed', error);
+  });
 
 // Apply basic middleware (custom middleware has path-to-regexp issues)
 app.use(express.json({ limit: '10mb' }));
@@ -113,7 +123,7 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
+  consoleUtils.logError(`Server Error: ${err.message}`, err);
   res.status(err.status || 500).json({
     status: 'error',
     message: err.message || 'Internal server error',
@@ -123,49 +133,23 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || DEFAULTS.PORT;
 
-// Enhanced startup display function
-const displayStartupInfo = () => {
+// Professional startup display function
+const displayStartupInfo = async () => {
   const env = process.env.NODE_ENV || 'development';
-  const serverUrl = `http://localhost:${PORT}`;
-
-  console.log('\n' + '═'.repeat(80).cyan);
-  console.log('║'.cyan + '                    📚 LIBRARY MANAGEMENT SYSTEM                    '.bold.white + '║'.cyan);
-  console.log('║'.cyan + '                          Backend API Server                          '.white + '║'.cyan);
-  console.log('═'.repeat(80).cyan);
-  console.log('');
-
-  // Server Status
-  console.log('✓'.green, 'Server Status:'.bold, 'Running'.green);
-  console.log('✓'.green, 'Environment:'.bold, env.toUpperCase().yellow);
-  console.log('✓'.green, 'Port:'.bold, PORT.toString().cyan);
-  console.log('✓'.green, 'URL:'.bold, serverUrl.blue.underline);
-  console.log('');
-
-  // API Endpoints Summary
-  console.log('📋 Available API Endpoints:'.magenta);
-  console.log('   ├─'.gray, 'GET  /health'.cyan, '- Server health check'.gray);
-  console.log('   ├─'.gray, 'POST /api/auth/*'.cyan, '- Authentication routes'.gray);
-  console.log('   ├─'.gray, 'GET  /api/books/*'.cyan, '- Book management'.gray);
-  console.log('   ├─'.gray, 'POST /api/borrows/*'.cyan, '- Borrowing system'.gray);
-  console.log('   ├─'.gray, 'GET  /api/categories/*'.cyan, '- Category management'.gray);
-  console.log('   ├─'.gray, 'POST /api/contact'.cyan, '- Contact messages'.gray);
-  console.log('   ├─'.gray, 'GET  /api/reviews/*'.cyan, '- Review system'.gray);
-  console.log('   └─'.gray, 'GET  /api/users/*'.cyan, '- User management (Librarian)'.gray);
-  console.log('');
-
-  // Development Info
-  if (env === 'development') {
-    console.log('🔧 Development Mode:'.yellow);
-    console.log('   ├─'.gray, 'Hot reload enabled'.yellow);
-    console.log('   ├─'.gray, 'Detailed logging active'.yellow);
-    console.log('   └─'.gray, 'CORS enabled for'.yellow, (process.env.CLIENT_URL || 'http://localhost:3000').cyan);
-    console.log('');
-  }
-
-  console.log('🚀 Ready to accept connections!'.green);
-  console.log('═'.repeat(80).cyan + '\n');
+  await startupDisplay.displayStartup(PORT, env);
 };
 
-app.listen(PORT, () => {
-  displayStartupInfo();
+app.listen(PORT, async () => {
+  await displayStartupInfo();
+});
+
+// Graceful shutdown handling
+process.on('SIGINT', () => {
+  startupDisplay.displayShutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  startupDisplay.displayShutdown();
+  process.exit(0);
 });
