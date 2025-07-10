@@ -3,7 +3,6 @@ const {
   authenticate,
   requireLibrarian,
   requirePermission,
-  requireMinimumRole,
   optionalAuthenticate
 } = require('../middleware/auth');
 const { validationMiddleware } = require('../services/validationService');
@@ -11,7 +10,6 @@ const { uploadBookCover, uploadBookCoverMemory, handleMulterError } = require('.
 const { bookCoverUploadRateLimit, bookCoverUploadAbuseProtection } = require('../middleware/uploadRateLimit');
 const { PERMISSIONS } = require('../services/rbacService');
 const auditService = require('../services/auditService');
-const securityMiddleware = require('../middleware/securityMiddleware');
 const booksController = require('../controllers/booksController');
 
 const router = express.Router();
@@ -274,18 +272,7 @@ router.put('/:id/update-cover',
   booksController.updateBookCover
 );
 
-// @desc    Upload book cover with enhanced processing
-// @route   POST /api/books/:id/cover
-// @access  Private (Librarian only)
-router.post('/:id/cover',
-  authenticate,
-  requireLibrarian,
-  bookCoverUploadRateLimit,
-  bookCoverUploadAbuseProtection,
-  uploadBookCoverMemory.single('coverImage'),
-  handleMulterError,
-  booksController.uploadBookCoverEnhanced
-);
+
 
 // @desc    Delete book cover image
 // @route   DELETE /api/books/:id/cover

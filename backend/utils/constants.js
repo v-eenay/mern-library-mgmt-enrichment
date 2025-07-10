@@ -1,0 +1,258 @@
+/**
+ * Application Constants
+ * Centralized constants to eliminate magic numbers and strings
+ */
+
+// HTTP Status Codes
+const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500
+};
+
+// Response Status
+const RESPONSE_STATUS = {
+  SUCCESS: 'success',
+  ERROR: 'error'
+};
+
+// Error Codes
+const ERROR_CODES = {
+  // Authentication
+  NO_TOKEN: 'NO_TOKEN',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  TOKEN_REVOKED: 'TOKEN_REVOKED',
+  MALFORMED_TOKEN: 'MALFORMED_TOKEN',
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  AUTHENTICATION_REQUIRED: 'AUTHENTICATION_REQUIRED',
+  
+  // Authorization
+  INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
+  INSUFFICIENT_ROLE: 'INSUFFICIENT_ROLE',
+  INSUFFICIENT_ROLE_LEVEL: 'INSUFFICIENT_ROLE_LEVEL',
+  INVALID_ROLE: 'INVALID_ROLE',
+  ACCESS_DENIED: 'ACCESS_DENIED',
+  
+  // Validation
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  INVALID_INPUT: 'INVALID_INPUT',
+  REQUIRED_FIELD_MISSING: 'REQUIRED_FIELD_MISSING',
+  INVALID_FORMAT: 'INVALID_FORMAT',
+  
+  // Resources
+  NOT_FOUND: 'NOT_FOUND',
+  ALREADY_EXISTS: 'ALREADY_EXISTS',
+  RESOURCE_ID_REQUIRED: 'RESOURCE_ID_REQUIRED',
+  
+  // Business Logic
+  BOOK_NOT_AVAILABLE: 'BOOK_NOT_AVAILABLE',
+  BOOK_ALREADY_BORROWED: 'BOOK_ALREADY_BORROWED',
+  BORROW_LIMIT_EXCEEDED: 'BORROW_LIMIT_EXCEEDED',
+  BOOK_NOT_BORROWED: 'BOOK_NOT_BORROWED',
+  REVIEW_ALREADY_EXISTS: 'REVIEW_ALREADY_EXISTS',
+  REVIEW_NOT_ALLOWED: 'REVIEW_NOT_ALLOWED',
+  
+  // File Upload
+  FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+  INVALID_FILE_TYPE: 'INVALID_FILE_TYPE',
+  FILE_UPLOAD_ERROR: 'FILE_UPLOAD_ERROR',
+  MALICIOUS_FILE_DETECTED: 'MALICIOUS_FILE_DETECTED',
+  
+  // Security
+  CSRF_TOKEN_MISSING: 'CSRF_TOKEN_MISSING',
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+  SUSPICIOUS_ACTIVITY: 'SUSPICIOUS_ACTIVITY',
+  
+  // System
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE'
+};
+
+// User Roles
+const USER_ROLES = {
+  BORROWER: 'borrower',
+  LIBRARIAN: 'librarian',
+  ADMIN: 'admin'
+};
+
+// Borrow Status
+const BORROW_STATUS = {
+  BORROWED: 'borrowed',
+  RETURNED: 'returned',
+  OVERDUE: 'overdue'
+};
+
+// Review Rating Range
+const REVIEW_RATING = {
+  MIN: 1,
+  MAX: 5
+};
+
+// Contact Message Status
+const CONTACT_STATUS = {
+  PENDING: 'pending',
+  READ: 'read',
+  RESPONDED: 'responded'
+};
+
+// Audit Log Severity
+const AUDIT_SEVERITY = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL'
+};
+
+// File Upload Limits
+const FILE_LIMITS = {
+  PROFILE_IMAGE_SIZE: 5 * 1024 * 1024, // 5MB
+  BOOK_COVER_SIZE: 10 * 1024 * 1024,   // 10MB
+  MAX_FILES: 1
+};
+
+// Allowed File Types
+const ALLOWED_FILE_TYPES = {
+  IMAGES: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+};
+
+// Pagination Defaults
+const PAGINATION = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  MAX_LIMIT: 100
+};
+
+// Token Expiration Times
+const TOKEN_EXPIRY = {
+  ACCESS_TOKEN: '15m',
+  REFRESH_TOKEN: '7d',
+  REFRESH_THRESHOLD: 300 // 5 minutes in seconds
+};
+
+// Rate Limiting
+const RATE_LIMITS = {
+  GENERAL: {
+    WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+    MAX_REQUESTS: 100
+  },
+  AUTH: {
+    WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+    MAX_REQUESTS: 5
+  },
+  FILE_UPLOAD: {
+    WINDOW_MS: 60 * 60 * 1000, // 1 hour
+    MAX_REQUESTS: 10
+  }
+};
+
+// Business Rules
+const BUSINESS_RULES = {
+  MAX_BOOKS_PER_USER: 5,
+  DEFAULT_BORROW_DAYS: 30,
+  MAX_RENEWAL_COUNT: 2,
+  OVERDUE_GRACE_DAYS: 7
+};
+
+// Database Collection Names
+const COLLECTIONS = {
+  USERS: 'users',
+  BOOKS: 'books',
+  BORROWS: 'borrows',
+  REVIEWS: 'reviews',
+  CATEGORIES: 'categories',
+  CONTACT_MESSAGES: 'contactmessages',
+  AUDIT_LOGS: 'auditlogs'
+};
+
+// Environment Variables
+const ENV_VARS = {
+  NODE_ENV: 'NODE_ENV',
+  PORT: 'PORT',
+  MONGODB_URI: 'MONGODB_URI',
+  JWT_SECRET: 'JWT_SECRET',
+  JWT_REFRESH_SECRET: 'JWT_REFRESH_SECRET',
+  CORS_ORIGIN: 'CORS_ORIGIN'
+};
+
+// Default Values
+const DEFAULTS = {
+  PORT: 5000,
+  NODE_ENV: 'development',
+  CORS_ORIGIN: 'http://localhost:3000'
+};
+
+// Validation Patterns
+const VALIDATION_PATTERNS = {
+  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+  ISBN: /^[0-9X-]{10,17}$/,
+  PHONE: /^\+?[\d\s\-\(\)]+$/,
+  AUTHOR_NAME: /^[a-zA-Z\s\-\.\']+$/,
+  CATEGORY_NAME: /^[a-zA-Z\s\-&]+$/
+};
+
+// Validation Lengths
+const VALIDATION_LENGTHS = {
+  NAME: { MIN: 2, MAX: 50 },
+  EMAIL: { MAX: 100 },
+  PASSWORD: { MIN: 8, MAX: 128 },
+  TITLE: { MIN: 1, MAX: 200 },
+  AUTHOR: { MIN: 1, MAX: 100 },
+  DESCRIPTION: { MAX: 1000 },
+  CATEGORY: { MIN: 1, MAX: 50 },
+  COMMENT: { MAX: 1000 },
+  SUBJECT: { MIN: 5, MAX: 200 },
+  MESSAGE: { MIN: 10, MAX: 2000 }
+};
+
+// HTTP Methods
+const HTTP_METHODS = {
+  GET: 'GET',
+  POST: 'POST',
+  PUT: 'PUT',
+  DELETE: 'DELETE',
+  PATCH: 'PATCH',
+  HEAD: 'HEAD',
+  OPTIONS: 'OPTIONS'
+};
+
+// CSRF Safe Methods
+const CSRF_SAFE_METHODS = [
+  HTTP_METHODS.GET,
+  HTTP_METHODS.HEAD,
+  HTTP_METHODS.OPTIONS
+];
+
+module.exports = {
+  HTTP_STATUS,
+  RESPONSE_STATUS,
+  ERROR_CODES,
+  USER_ROLES,
+  BORROW_STATUS,
+  REVIEW_RATING,
+  CONTACT_STATUS,
+  AUDIT_SEVERITY,
+  FILE_LIMITS,
+  ALLOWED_FILE_TYPES,
+  PAGINATION,
+  TOKEN_EXPIRY,
+  RATE_LIMITS,
+  BUSINESS_RULES,
+  COLLECTIONS,
+  ENV_VARS,
+  DEFAULTS,
+  VALIDATION_PATTERNS,
+  VALIDATION_LENGTHS,
+  HTTP_METHODS,
+  CSRF_SAFE_METHODS
+};

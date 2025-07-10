@@ -2,6 +2,13 @@ const { body, query, param, validationResult } = require('express-validator');
 const { sendError, isValidObjectId } = require('../utils/helpers');
 const securityValidation = require('./securityValidationService');
 const validator = require('validator');
+const {
+  USER_ROLES,
+  VALIDATION_PATTERNS,
+  VALIDATION_LENGTHS,
+  HTTP_STATUS,
+  ERROR_CODES
+} = require('../utils/constants');
 
 // Common validation rules
 const validationRules = {
@@ -9,9 +16,9 @@ const validationRules = {
   user: {
     name: body('name')
       .trim()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Name must be between 2 and 50 characters')
-      .matches(/^[a-zA-Z\s\-\.\']+$/)
+      .isLength({ min: VALIDATION_LENGTHS.NAME.MIN, max: VALIDATION_LENGTHS.NAME.MAX })
+      .withMessage(`Name must be between ${VALIDATION_LENGTHS.NAME.MIN} and ${VALIDATION_LENGTHS.NAME.MAX} characters`)
+      .matches(VALIDATION_PATTERNS.AUTHOR_NAME)
       .withMessage('Name can only contain letters, spaces, hyphens, periods, and apostrophes')
       .custom((value) => {
         if (securityValidation.containsSuspiciousPatterns(value)) {
@@ -24,6 +31,7 @@ const validationRules = {
     email: body('email')
       .isEmail()
       .normalizeEmail()
+      .isLength({ max: VALIDATION_LENGTHS.EMAIL.MAX })
       .withMessage('Please provide a valid email')
       .custom((value) => {
         const validation = securityValidation.validateEmail(value);
@@ -34,8 +42,8 @@ const validationRules = {
       }),
 
     password: body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters long')
+      .isLength({ min: VALIDATION_LENGTHS.PASSWORD.MIN, max: VALIDATION_LENGTHS.PASSWORD.MAX })
+      .withMessage(`Password must be between ${VALIDATION_LENGTHS.PASSWORD.MIN} and ${VALIDATION_LENGTHS.PASSWORD.MAX} characters`)
       .custom((value) => {
         const validation = securityValidation.validatePassword(value);
         if (!validation.isValid) {
@@ -46,8 +54,8 @@ const validationRules = {
 
     role: body('role')
       .optional()
-      .isIn(['borrower', 'librarian'])
-      .withMessage('Role must be either borrower or librarian')
+      .isIn([USER_ROLES.BORROWER, USER_ROLES.LIBRARIAN])
+      .withMessage(`Role must be either ${USER_ROLES.BORROWER} or ${USER_ROLES.LIBRARIAN}`)
       .custom((value) => {
         if (value && securityValidation.containsSuspiciousPatterns(value)) {
           throw new Error('Role contains invalid characters');
@@ -383,7 +391,19 @@ const createValidationMiddleware = (rules) => {
     (req, res, next) => {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return sendError(res, 'Validation failed', 400);
+        const formattedErrors = errors.array().map(error => ({
+          field: error.path || error.param,
+          message: error.msg,
+          value: error.value
+        }));
+
+        return sendError(
+          res,
+          'Validation failed',
+          HTTP_STATUS.BAD_REQUEST,
+          ERROR_CODES.VALIDATION_ERROR,
+          { errors: formattedErrors }
+        );
       }
       next();
     }
