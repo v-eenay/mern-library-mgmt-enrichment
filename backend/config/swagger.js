@@ -461,6 +461,344 @@ const swaggerDefinition = {
           }
         },
         required: ['id', 'name', 'email', 'subject', 'message', 'status']
+      },
+
+      // Request Schemas
+      RegisterRequest: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            minLength: 2,
+            maxLength: 50,
+            description: 'User full name',
+            example: 'John Doe'
+          },
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address',
+            example: 'john.doe@example.com'
+          },
+          password: {
+            type: 'string',
+            minLength: 6,
+            description: 'User password',
+            example: 'securePassword123'
+          },
+          role: {
+            type: 'string',
+            enum: ['borrower', 'librarian'],
+            description: 'User role (admin role can only be assigned by existing admin)',
+            example: 'borrower'
+          }
+        },
+        required: ['name', 'email', 'password']
+      },
+
+      LoginRequest: {
+        type: 'object',
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address',
+            example: 'john.doe@example.com'
+          },
+          password: {
+            type: 'string',
+            description: 'User password',
+            example: 'securePassword123'
+          }
+        },
+        required: ['email', 'password']
+      },
+
+      AuthResponse: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['success'],
+            example: 'success'
+          },
+          message: {
+            type: 'string',
+            example: 'Login successful'
+          },
+          data: {
+            type: 'object',
+            properties: {
+              user: {
+                $ref: '#/components/schemas/User'
+              },
+              accessToken: {
+                type: 'string',
+                description: 'JWT access token',
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+              },
+              refreshToken: {
+                type: 'string',
+                description: 'JWT refresh token',
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+              }
+            }
+          }
+        },
+        required: ['status', 'message', 'data']
+      },
+
+      RefreshTokenResponse: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['success'],
+            example: 'success'
+          },
+          message: {
+            type: 'string',
+            example: 'Token refreshed successfully'
+          },
+          data: {
+            type: 'object',
+            properties: {
+              accessToken: {
+                type: 'string',
+                description: 'New JWT access token',
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+              },
+              refreshToken: {
+                type: 'string',
+                description: 'New JWT refresh token',
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+              }
+            }
+          }
+        },
+        required: ['status', 'message', 'data']
+      },
+
+      BorrowRequest: {
+        type: 'object',
+        properties: {
+          bookId: {
+            type: 'string',
+            format: 'objectId',
+            description: 'ID of the book to borrow',
+            example: '507f1f77bcf86cd799439012'
+          }
+        },
+        required: ['bookId']
+      },
+
+      ReviewRequest: {
+        type: 'object',
+        properties: {
+          bookId: {
+            type: 'string',
+            format: 'objectId',
+            description: 'ID of the book being reviewed',
+            example: '507f1f77bcf86cd799439012'
+          },
+          rating: {
+            type: 'integer',
+            minimum: 1,
+            maximum: 5,
+            description: 'Book rating (1-5 stars)',
+            example: 4
+          },
+          comment: {
+            type: 'string',
+            maxLength: 1000,
+            description: 'Review comment',
+            example: 'Great book! Highly recommended.'
+          }
+        },
+        required: ['bookId', 'rating']
+      },
+
+      BookRequest: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 200,
+            description: 'Book title',
+            example: 'The Great Gatsby'
+          },
+          author: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+            description: 'Book author',
+            example: 'F. Scott Fitzgerald'
+          },
+          isbn: {
+            type: 'string',
+            pattern: '^[0-9X-]{10,17}$',
+            description: 'International Standard Book Number',
+            example: '978-0-7432-7356-5'
+          },
+          category: {
+            type: 'string',
+            description: 'Book category',
+            example: 'Fiction'
+          },
+          description: {
+            type: 'string',
+            maxLength: 1000,
+            description: 'Book description',
+            example: 'A classic American novel set in the Jazz Age'
+          },
+          quantity: {
+            type: 'integer',
+            minimum: 1,
+            description: 'Total number of copies',
+            example: 5
+          }
+        },
+        required: ['title', 'author', 'isbn', 'category', 'quantity']
+      },
+
+      CategoryRequest: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 50,
+            description: 'Category name',
+            example: 'Science Fiction'
+          },
+          description: {
+            type: 'string',
+            maxLength: 500,
+            description: 'Category description',
+            example: 'Books featuring futuristic concepts and technology'
+          }
+        },
+        required: ['name']
+      },
+
+      ContactRequest: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            minLength: 2,
+            maxLength: 100,
+            description: 'Sender name',
+            example: 'John Doe'
+          },
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'Sender email address',
+            example: 'john.doe@example.com'
+          },
+          subject: {
+            type: 'string',
+            minLength: 5,
+            maxLength: 200,
+            description: 'Message subject',
+            example: 'Question about book availability'
+          },
+          message: {
+            type: 'string',
+            minLength: 10,
+            maxLength: 2000,
+            description: 'Message content',
+            example: 'I would like to know if you have any books by...'
+          }
+        },
+        required: ['name', 'email', 'subject', 'message']
+      },
+
+      UpdateProfileRequest: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            minLength: 2,
+            maxLength: 50,
+            description: 'User full name',
+            example: 'John Doe'
+          },
+          email: {
+            type: 'string',
+            format: 'email',
+            description: 'User email address',
+            example: 'john.doe@example.com'
+          }
+        }
+      },
+
+      ChangePasswordRequest: {
+        type: 'object',
+        properties: {
+          currentPassword: {
+            type: 'string',
+            description: 'Current password',
+            example: 'currentPassword123'
+          },
+          newPassword: {
+            type: 'string',
+            minLength: 6,
+            description: 'New password',
+            example: 'newSecurePassword123'
+          }
+        },
+        required: ['currentPassword', 'newPassword']
+      },
+
+      // Response Schemas
+      BooksListResponse: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            example: 'success'
+          },
+          message: {
+            type: 'string',
+            example: 'Books retrieved successfully'
+          },
+          data: {
+            type: 'object',
+            properties: {
+              books: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/Book'
+                }
+              },
+              pagination: {
+                $ref: '#/components/schemas/Pagination'
+              }
+            }
+          }
+        },
+        required: ['status', 'message', 'data']
+      },
+
+      BookResponse: {
+        allOf: [
+          { $ref: '#/components/schemas/Book' },
+          {
+            type: 'object',
+            properties: {
+              reviews: {
+                type: 'array',
+                description: 'Book reviews (when fetching single book)',
+                items: {
+                  $ref: '#/components/schemas/Review'
+                }
+              }
+            }
+          }
+        ]
       }
     },
     

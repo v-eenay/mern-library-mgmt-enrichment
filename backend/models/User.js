@@ -29,8 +29,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Role is required'],
     enum: {
-      values: ['borrower', 'librarian'],
-      message: 'Role must be either borrower or librarian'
+      values: ['borrower', 'librarian', 'admin'],
+      message: 'Role must be either borrower, librarian, or admin'
     },
     default: 'borrower'
   },

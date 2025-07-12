@@ -99,7 +99,7 @@ reviewSchema.statics.findByUser = function(userId, options = {}) {
 // Static method to get average rating for a book
 reviewSchema.statics.getAverageRating = async function(bookId) {
   const result = await this.aggregate([
-    { $match: { bookId: mongoose.Types.ObjectId(bookId) } },
+    { $match: { bookId: new mongoose.Types.ObjectId(bookId) } },
     {
       $group: {
         _id: null,
@@ -215,6 +215,52 @@ reviewSchema.pre('save', async function(next) {
     next();
   } catch (error) {
     next(error);
+  }
+});
+
+// Post-save middleware to update book rating data
+reviewSchema.post('save', async function(doc) {
+  try {
+    const Book = mongoose.model('Book');
+    const ratingStats = await this.constructor.getAverageRating(doc.bookId);
+    const book = await Book.findById(doc.bookId);
+    if (book) {
+      await book.updateRatingData(ratingStats);
+    }
+  } catch (error) {
+    console.error('Error updating book rating data:', error);
+  }
+});
+
+// Post-remove middleware to update book rating data
+reviewSchema.post('findOneAndDelete', async function(doc) {
+  if (doc) {
+    try {
+      const Book = mongoose.model('Book');
+      const ratingStats = await mongoose.model('Review').getAverageRating(doc.bookId);
+      const book = await Book.findById(doc.bookId);
+      if (book) {
+        await book.updateRatingData(ratingStats);
+      }
+    } catch (error) {
+      console.error('Error updating book rating data after deletion:', error);
+    }
+  }
+});
+
+// Post-update middleware to update book rating data
+reviewSchema.post('findOneAndUpdate', async function(doc) {
+  if (doc) {
+    try {
+      const Book = mongoose.model('Book');
+      const ratingStats = await mongoose.model('Review').getAverageRating(doc.bookId);
+      const book = await Book.findById(doc.bookId);
+      if (book) {
+        await book.updateRatingData(ratingStats);
+      }
+    } catch (error) {
+      console.error('Error updating book rating data after update:', error);
+    }
   }
 });
 

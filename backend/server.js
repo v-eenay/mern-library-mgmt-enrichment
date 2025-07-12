@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const colors = require('colors');
+const path = require('path');
 
 // Load environment variables (suppress promotional messages)
 const originalConsoleLog = console.log;
@@ -103,6 +104,17 @@ const {
   rbacRoutes
 } = require('./routes');
 
+// Import seeding routes
+const seedRoutes = require('./routes/seed');
+
+// Serve static files for landing page
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Landing page route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
@@ -112,6 +124,7 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/rbac', rbacRoutes);
+app.use('/api/seed', seedRoutes);
 
 // Simple error handling (fixed version)
 app.use((req, res) => {

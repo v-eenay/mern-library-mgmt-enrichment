@@ -119,24 +119,172 @@ router.post('/register', authRateLimit, progressiveDelay, validationMiddleware.r
  */
 router.post('/login', authRateLimit, progressiveDelay, validationMiddleware.login, authController.login);
 
-// @desc    Get current user profile
-// @route   GET /api/auth/profile
-// @access  Private
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   get:
+ *     summary: Get current user profile
+ *     description: Retrieve the authenticated user's profile information including personal details and role.
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Profile retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.get('/profile', authenticate, authController.getProfile);
 
-// @desc    Update user profile
-// @route   PUT /api/auth/profile
-// @access  Private
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile
+ *     description: Update the authenticated user's profile information such as name and email.
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateProfileRequest'
+ *           example:
+ *             name: John Doe Updated
+ *             email: john.updated@example.com
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.put('/profile', authenticate, validationMiddleware.updateProfile, authController.updateProfile);
 
-// @desc    Change password
-// @route   PUT /api/auth/change-password
-// @access  Private
+/**
+ * @swagger
+ * /api/auth/change-password:
+ *   put:
+ *     summary: Change user password
+ *     description: |
+ *       Change the authenticated user's password. Requires current password for verification.
+ *
+ *       **Security Features:**
+ *       - Rate limited to 3 attempts per 15 minutes
+ *       - Requires current password verification
+ *       - New password must meet security requirements
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChangePasswordRequest'
+ *           example:
+ *             currentPassword: currentPassword123
+ *             newPassword: newSecurePassword123
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Password changed successfully
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 router.put('/change-password', authenticate, passwordChangeRateLimit, validationMiddleware.changePassword, authController.changePassword);
 
-// @desc    Logout user
-// @route   POST /api/auth/logout
-// @access  Private
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     description: |
+ *       Logout the authenticated user by blacklisting their tokens and clearing HTTP-only cookies.
+ *
+ *       **Security Features:**
+ *       - Blacklists both access and refresh tokens
+ *       - Clears HTTP-only authentication cookies
+ *       - Prevents token reuse after logout
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Logout successful
+ *         headers:
+ *           Set-Cookie:
+ *             description: Cleared authentication cookies
+ *             schema:
+ *               type: string
+ *               example: authToken=; HttpOnly; Secure; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.post('/logout', authenticate, authController.logout);
 
 /**
