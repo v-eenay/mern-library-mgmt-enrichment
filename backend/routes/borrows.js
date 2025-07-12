@@ -195,18 +195,125 @@ router.post('/',
   borrowsController.borrowBook
 );
 
-// @desc    Return a book
-// @route   PUT /api/borrows/:id/return
-// @access  Private (Own borrows or Librarian)
+/**
+ * @swagger
+ * /api/borrows/{id}/return:
+ *   put:
+ *     summary: Return a book
+ *     description: |
+ *       Mark a borrowed book as returned. Users can return their own borrows, librarians can return any borrow.
+ *
+ *       **Required Permission:** `borrow:update:own` (own borrows) or `borrow:update:any` (librarian)
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Book returned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Book returned successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrow:
+ *                       $ref: '#/components/schemas/Borrow'
+ *       400:
+ *         description: Book already returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               status: error
+ *               message: Book has already been returned
+ *               code: BOOK_ALREADY_RETURNED
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.put('/:id/return',
   requireResourceOwnership('id', PERMISSIONS.BORROW_UPDATE_OWN, PERMISSIONS.BORROW_UPDATE_ANY),
   auditService.createAuditMiddleware('BORROW_RETURN', 'Borrow', 'MEDIUM'),
   borrowsController.returnBook
 );
 
-// @desc    Extend due date for a borrow
-// @route   PUT /api/borrows/:id/extend
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/borrows/{id}/extend:
+ *   put:
+ *     summary: Extend due date for a borrow
+ *     description: |
+ *       Extend the due date for a borrowed book. Only librarians and admins can extend due dates.
+ *
+ *       **Required Permission:** `borrow:extend`
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               days:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 30
+ *                 description: Number of days to extend
+ *                 example: 14
+ *             required:
+ *               - days
+ *     responses:
+ *       200:
+ *         description: Due date extended successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Due date extended successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrow:
+ *                       $ref: '#/components/schemas/Borrow'
+ *                     newDueDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: '2023-03-15T10:30:00.000Z'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.put('/:id/extend',
   requirePermission(PERMISSIONS.BORROW_EXTEND),
   validationMiddleware.extendDueDate,
@@ -214,44 +321,340 @@ router.put('/:id/extend',
   borrowsController.extendDueDate
 );
 
-// @desc    Get user's borrow history
-// @route   GET /api/borrows/my-borrows
-// @access  Private
+/**
+ * @swagger
+ * /api/borrows/my-borrows:
+ *   get:
+ *     summary: Get user's borrow history
+ *     description: Retrieve the authenticated user's borrowing history with pagination.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *     responses:
+ *       200:
+ *         description: Borrow history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Borrow history retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrows:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Borrow'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.get('/my-borrows', validationMiddleware.pagination, borrowsController.getMyBorrows);
 
-// @desc    Get user's overdue borrows
-// @route   GET /api/borrows/my-overdue
-// @access  Private
+/**
+ * @swagger
+ * /api/borrows/my-overdue:
+ *   get:
+ *     summary: Get user's overdue borrows
+ *     description: Retrieve the authenticated user's overdue borrowed books.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Overdue borrows retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Overdue borrows retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrows:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Borrow'
+ *                     count:
+ *                       type: integer
+ *                       example: 2
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
 router.get('/my-overdue', borrowsController.getMyOverdueBorrows);
 
-// @desc    Get borrow statistics
-// @route   GET /api/borrows/stats/overview
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/borrows/stats/overview:
+ *   get:
+ *     summary: Get borrow statistics
+ *     description: Retrieve comprehensive borrowing statistics for librarians and admins.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Borrow statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Borrow statistics retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalBorrows:
+ *                       type: integer
+ *                       example: 150
+ *                     activeBorrows:
+ *                       type: integer
+ *                       example: 45
+ *                     overdueBorrows:
+ *                       type: integer
+ *                       example: 8
+ *                     returnedBorrows:
+ *                       type: integer
+ *                       example: 97
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.get('/stats/overview', requireLibrarian, borrowsController.getBorrowStats);
 
-// @desc    Get overdue borrows
-// @route   GET /api/borrows/overdue
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/borrows/overdue:
+ *   get:
+ *     summary: Get overdue borrows
+ *     description: Retrieve all overdue borrowed books for librarian management.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *     responses:
+ *       200:
+ *         description: Overdue borrows retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Overdue borrows retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrows:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Borrow'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.get('/overdue', requireLibrarian, validationMiddleware.pagination, borrowsController.getOverdueBorrows);
 
-// @desc    Update overdue statuses
-// @route   POST /api/borrows/update-overdue
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/borrows/update-overdue:
+ *   post:
+ *     summary: Update overdue statuses
+ *     description: Update the status of all overdue borrows in the system.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Overdue statuses updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Overdue statuses updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updatedCount:
+ *                       type: integer
+ *                       example: 5
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.post('/update-overdue', requireLibrarian, borrowsController.updateOverdueStatuses);
 
-// @desc    Get active borrows for a specific book
-// @route   GET /api/borrows/book/:bookId/active
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/borrows/book/{bookId}/active:
+ *   get:
+ *     summary: Get active borrows for a specific book
+ *     description: Retrieve all active borrows for a specific book.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - name: bookId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectId
+ *         description: Book ID
+ *         example: 507f1f77bcf86cd799439012
+ *     responses:
+ *       200:
+ *         description: Active borrows retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active borrows retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrows:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Borrow'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.get('/book/:bookId/active', requireLibrarian, borrowsController.getActiveBorrowsByBook);
 
-// @desc    Get all borrows (Librarian only)
-// @route   GET /api/borrows
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/borrows:
+ *   get:
+ *     summary: Get all borrows
+ *     description: Retrieve all borrows in the system with pagination (Librarian only).
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *     responses:
+ *       200:
+ *         description: All borrows retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: All borrows retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrows:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Borrow'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.get('/', requireLibrarian, validationMiddleware.pagination, borrowsController.getAllBorrows);
 
-// @desc    Get borrow by ID
-// @route   GET /api/borrows/:id
-// @access  Private
+/**
+ * @swagger
+ * /api/borrows/{id}:
+ *   get:
+ *     summary: Get borrow by ID
+ *     description: Retrieve detailed information about a specific borrow record.
+ *     tags: [Borrowing]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Borrow retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Borrow retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrow:
+ *                       $ref: '#/components/schemas/Borrow'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.get('/:id', borrowsController.getBorrowById);
 
 module.exports = router;

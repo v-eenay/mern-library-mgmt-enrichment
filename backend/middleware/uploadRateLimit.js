@@ -282,6 +282,24 @@ const progressiveDelay = securityMiddleware.createProgressiveDelay({
   maxDelayMs: 30000
 });
 
+// Rate limiting for database seeding operations
+const seedingRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 seeding requests per hour
+  message: {
+    status: 'error',
+    message: 'Too many seeding requests from this IP, please try again later.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: true,
+  keyGenerator: (req) => {
+    return req.ip; // Use IP for seeding operations
+  }
+});
+
 module.exports = {
   uploadRateLimit,
   profileUploadRateLimit,
@@ -294,5 +312,6 @@ module.exports = {
   apiEndpointRateLimit,
   searchRateLimit,
   authRateLimit,
-  progressiveDelay
+  progressiveDelay,
+  seedingRateLimit
 };

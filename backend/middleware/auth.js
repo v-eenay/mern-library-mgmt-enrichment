@@ -1,113 +1,122 @@
-const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const jwtService = require('../services/jwtService');
-const { rbacService, PERMISSIONS } = require('../services/rbacService');
+const { rbacService } = require('../services/rbacService');
 
-// Enhanced middleware to verify JWT token with improved security
-const authenticate = async (req, res, next) => {
-  try {
-    const token = jwtService.extractToken(req);
+/**
+ * Common error response helper
+ */
+const sendErrorResponse = (res, status, message, code, additional = {}) => {
+  return res.status(status).json({
+    status: 'error',
+    message,
+    code,
+    ...additional
+  });
+};
 
-    if (!token) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Access denied. No token provided.',
-        code: 'NO_TOKEN'
-      });
-    }
+/**
+ * Common authentication logic helper
+ */
+const authenticateUser = async (token) => {
+  if (!token) {
+    throw new Error('NO_TOKEN:Access denied. No token provided.');
+  }
 
-    // Verify token using enhanced JWT service
-    const decoded = jwtService.verifyAccessToken(token);
-    const user = await User.findById(decoded.id);
+  const decoded = jwtService.verifyAccessToken(token);
+  const user = await User.findById(decoded.id);
 
-    if (!user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Invalid token. User not found.',
-        code: 'USER_NOT_FOUND'
-      });
-    }
+  if (!user) {
+    throw new Error('USER_NOT_FOUND:Invalid token. User not found.');
+  }
 
-    // Add token info to request for potential use in controllers
-    req.user = user;
-    req.tokenInfo = {
+  return {
+    user,
+    tokenInfo: {
       jti: decoded.jti,
       iat: decoded.iat,
       exp: decoded.exp,
       type: decoded.type
-    };
+    }
+  };
+};
 
+/**
+ * Parse authentication error
+ */
+const parseAuthError = (error) => {
+  if (error.message.includes('NO_TOKEN:')) {
+    return { message: error.message.split(':')[1], code: 'NO_TOKEN' };
+  }
+  if (error.message.includes('USER_NOT_FOUND:')) {
+    return { message: error.message.split(':')[1], code: 'USER_NOT_FOUND' };
+  }
+  if (error.message.includes('expired')) {
+    return { message: 'Token has expired. Please refresh your session.', code: 'TOKEN_EXPIRED' };
+  }
+  if (error.message.includes('revoked')) {
+    return { message: 'Token has been revoked. Please log in again.', code: 'TOKEN_REVOKED' };
+  }
+  if (error.message.includes('malformed')) {
+    return { message: 'Malformed token.', code: 'MALFORMED_TOKEN' };
+  }
+  return { message: 'Invalid token.', code: 'INVALID_TOKEN' };
+};
+
+/**
+ * Enhanced middleware to verify JWT token with improved security
+ */
+const authenticate = async (req, res, next) => {
+  try {
+    const token = jwtService.extractToken(req);
+    const { user, tokenInfo } = await authenticateUser(token);
+
+    req.user = user;
+    req.tokenInfo = tokenInfo;
     next();
   } catch (error) {
-    let message = 'Invalid token.';
-    let code = 'INVALID_TOKEN';
+    const { message, code } = parseAuthError(error);
+    return sendErrorResponse(res, 401, message, code);
+  }
+};
 
-    if (error.message.includes('expired')) {
-      message = 'Token has expired. Please refresh your session.';
-      code = 'TOKEN_EXPIRED';
-    } else if (error.message.includes('revoked')) {
-      message = 'Token has been revoked. Please log in again.';
-      code = 'TOKEN_REVOKED';
-    } else if (error.message.includes('malformed')) {
-      message = 'Malformed token.';
-      code = 'MALFORMED_TOKEN';
+/**
+ * Generic role requirement middleware factory
+ */
+const requireRole = (role) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return sendErrorResponse(res, 401, 'Authentication required', 'AUTHENTICATION_REQUIRED');
     }
 
-    res.status(401).json({
-      status: 'error',
-      message,
-      code
-    });
-  }
+    if (req.user.role !== role) {
+      return sendErrorResponse(res, 403, `Access denied. ${role.charAt(0).toUpperCase() + role.slice(1)} role required.`, 'INSUFFICIENT_ROLE');
+    }
+
+    next();
+  };
 };
 
-// Middleware to check if user is librarian
-const requireLibrarian = (req, res, next) => {
-  if (req.user.role !== 'librarian') {
-    return res.status(403).json({
-      status: 'error',
-      message: 'Access denied. Librarian role required.'
-    });
-  }
-  next();
-};
+// Specific role middleware
+const requireLibrarian = requireRole('librarian');
+const requireBorrower = requireRole('borrower');
 
-// Middleware to check if user is borrower
-const requireBorrower = (req, res, next) => {
-  if (req.user.role !== 'borrower') {
-    return res.status(403).json({
-      status: 'error',
-      message: 'Access denied. Borrower role required.'
-    });
-  }
-  next();
-};
-
-// Optional authentication middleware (doesn't fail if no token)
+/**
+ * Optional authentication middleware (doesn't fail if no token)
+ */
 const optionalAuthenticate = async (req, res, next) => {
   try {
     const token = jwtService.extractToken(req);
 
     if (token) {
-      const decoded = jwtService.verifyAccessToken(token);
-      const user = await User.findById(decoded.id);
-
-      if (user) {
-        req.user = user;
-        req.tokenInfo = {
-          jti: decoded.jti,
-          iat: decoded.iat,
-          exp: decoded.exp,
-          type: decoded.type
-        };
-      }
+      const { user, tokenInfo } = await authenticateUser(token);
+      req.user = user;
+      req.tokenInfo = tokenInfo;
     }
-
-    next();
   } catch (error) {
     // Don't fail on optional authentication, just continue without user
-    next();
   }
+
+  next();
 };
 
 // Enhanced CSRF protection middleware
@@ -157,33 +166,48 @@ const checkTokenExpiration = (req, res, next) => {
 };
 
 /**
+ * Generic permission check helper
+ */
+const checkPermissions = (user, permissions, checkType = 'any') => {
+  if (!user) {
+    throw new Error('AUTHENTICATION_REQUIRED:Authentication required');
+  }
+
+  const requiredPermissions = Array.isArray(permissions) ? permissions : [permissions];
+  const hasPermission = checkType === 'all'
+    ? rbacService.hasAllPermissions(user, requiredPermissions)
+    : rbacService.hasAnyPermission(user, requiredPermissions);
+
+  if (!hasPermission) {
+    throw new Error(`INSUFFICIENT_PERMISSIONS:Insufficient permissions:${JSON.stringify(requiredPermissions)}:${user.role}`);
+  }
+};
+
+/**
  * Enhanced permission-based authorization middleware
  * @param {string|Array} permissions - Required permission(s)
  * @returns {Function} Express middleware
  */
 const requirePermission = (permissions) => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication required',
-        code: 'AUTHENTICATION_REQUIRED'
-      });
+    try {
+      checkPermissions(req.user, permissions, 'any');
+      next();
+    } catch (error) {
+      const [code, message, required, userRole] = error.message.split(':');
+      const additional = required ? {
+        required: JSON.parse(required),
+        userRole
+      } : {};
+
+      return sendErrorResponse(
+        res,
+        code === 'AUTHENTICATION_REQUIRED' ? 401 : 403,
+        message,
+        code,
+        additional
+      );
     }
-
-    const requiredPermissions = Array.isArray(permissions) ? permissions : [permissions];
-
-    if (!rbacService.hasAnyPermission(req.user, requiredPermissions)) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Insufficient permissions',
-        code: 'INSUFFICIENT_PERMISSIONS',
-        required: requiredPermissions,
-        userRole: req.user.role
-      });
-    }
-
-    next();
   };
 };
 
@@ -194,25 +218,24 @@ const requirePermission = (permissions) => {
  */
 const requireAllPermissions = (permissions) => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication required',
-        code: 'AUTHENTICATION_REQUIRED'
-      });
-    }
+    try {
+      checkPermissions(req.user, permissions, 'all');
+      next();
+    } catch (error) {
+      const [code, message, required, userRole] = error.message.split(':');
+      const additional = required ? {
+        required: JSON.parse(required),
+        userRole
+      } : {};
 
-    if (!rbacService.hasAllPermissions(req.user, permissions)) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Insufficient permissions',
-        code: 'INSUFFICIENT_PERMISSIONS',
-        required: permissions,
-        userRole: req.user.role
-      });
+      return sendErrorResponse(
+        res,
+        code === 'AUTHENTICATION_REQUIRED' ? 401 : 403,
+        message,
+        code,
+        additional
+      );
     }
-
-    next();
   };
 };
 
@@ -279,53 +302,33 @@ const requireResourceOwnership = (resourceParam, ownPermission, anyPermission = 
 const requireMinimumRole = (minimumRole) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication required',
-        code: 'AUTHENTICATION_REQUIRED'
-      });
+      return sendErrorResponse(res, 401, 'Authentication required', 'AUTHENTICATION_REQUIRED');
     }
 
     const userRole = rbacService.roles[req.user.role];
     const requiredRole = rbacService.roles[minimumRole];
 
     if (!userRole || !requiredRole) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Invalid role configuration',
-        code: 'INVALID_ROLE'
-      });
+      return sendErrorResponse(res, 403, 'Invalid role configuration', 'INVALID_ROLE');
     }
 
     if (userRole.level < requiredRole.level) {
-      return res.status(403).json({
-        status: 'error',
-        message: `Minimum role required: ${requiredRole.name}`,
-        code: 'INSUFFICIENT_ROLE_LEVEL',
-        required: minimumRole,
-        userRole: req.user.role
-      });
+      return sendErrorResponse(
+        res,
+        403,
+        `Minimum role required: ${requiredRole.name}`,
+        'INSUFFICIENT_ROLE_LEVEL',
+        { required: minimumRole, userRole: req.user.role }
+      );
     }
 
     next();
   };
 };
 
-/**
- * Admin-only operations middleware
- * @returns {Function} Express middleware
- */
-const requireAdmin = () => {
-  return requireMinimumRole('admin');
-};
-
-/**
- * Enhanced librarian middleware with permission check
- * @returns {Function} Express middleware
- */
-const requireLibrarianEnhanced = () => {
-  return requireMinimumRole('librarian');
-};
+// Convenience middleware for common roles
+const requireAdmin = requireMinimumRole('admin');
+const requireLibrarianEnhanced = requireMinimumRole('librarian');
 
 module.exports = {
   authenticate,

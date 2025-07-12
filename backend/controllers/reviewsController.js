@@ -113,6 +113,46 @@ const getMyReviews = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get reviews by user ID (Librarian only)
+// @route   GET /api/reviews/user/:userId
+// @access  Private (Librarian only)
+const getUserReviews = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { page = 0, limit = 10 } = req.query;
+
+  if (!isValidObjectId(userId)) {
+    return sendError(res, 'Invalid user ID', 400);
+  }
+
+  // Check if user exists
+  const User = require('../models/User');
+  const user = await User.findById(userId);
+  if (!user) {
+    return sendError(res, 'User not found', 404);
+  }
+
+  const { limit: pageLimit, offset } = getPagination(page, limit);
+
+  const reviews = await Review.findByUser(userId, {
+    limit: pageLimit,
+    skip: offset
+  });
+
+  const total = await Review.countDocuments({ userId });
+
+  sendSuccess(res, 'User reviews retrieved successfully', {
+    userId,
+    userName: user.name,
+    reviews,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: pageLimit,
+      totalPages: Math.ceil(total / pageLimit)
+    }
+  });
+});
+
 // @desc    Get review by ID
 // @route   GET /api/reviews/:id
 // @access  Public
@@ -249,14 +289,242 @@ const getTopRatedBooks = asyncHandler(async (req, res) => {
   sendSuccess(res, 'Top-rated books retrieved successfully', { books: topRatedBooks });
 });
 
+// @desc    Get review analytics and insights
+// @route   GET /api/reviews/analytics/overview
+// @access  Private (Librarian only)
+const getReviewAnalytics = asyncHandler(async (req, res) => {
+  const [
+    totalReviews,
+    averageRatingOverall,
+    ratingDistribution,
+    reviewsThisMonth,
+    topReviewers,
+    recentTrends
+  ] = await Promise.all([
+    // Total reviews count
+    Review.countDocuments(),
+
+    // Overall average rating
+    Review.aggregate([
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: '$rating' }
+        }
+      }
+    ]),
+
+    // Rating distribution across all reviews
+    Review.aggregate([
+      {
+        $group: {
+          _id: '$rating',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
+    ]),
+
+    // Reviews this month
+    Review.countDocuments({
+      createdAt: {
+        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      }
+    }),
+
+    // Top reviewers (users with most reviews)
+    Review.aggregate([
+      {
+        $group: {
+          _id: '$userId',
+          reviewCount: { $sum: 1 },
+          averageRating: { $avg: '$rating' }
+        }
+      },
+      {
+        $sort: { reviewCount: -1 }
+      },
+      {
+        $limit: 10
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: '$user'
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: '$_id',
+          userName: '$user.name',
+          reviewCount: 1,
+          averageRating: { $round: ['$averageRating', 1] }
+        }
+      }
+    ]),
+
+    // Review trends (last 6 months)
+    Review.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          count: { $sum: 1 },
+          averageRating: { $avg: '$rating' }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ])
+  ]);
+
+  // Process rating distribution
+  const distributionMap = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  ratingDistribution.forEach(item => {
+    distributionMap[item._id] = item.count;
+  });
+
+  const analytics = {
+    overview: {
+      totalReviews,
+      averageRatingOverall: averageRatingOverall[0]?.averageRating
+        ? Math.round(averageRatingOverall[0].averageRating * 10) / 10
+        : 0,
+      reviewsThisMonth,
+      ratingDistribution: distributionMap
+    },
+    topReviewers,
+    trends: recentTrends.map(trend => ({
+      month: `${trend._id.year}-${String(trend._id.month).padStart(2, '0')}`,
+      reviewCount: trend.count,
+      averageRating: Math.round(trend.averageRating * 10) / 10
+    }))
+  };
+
+  sendSuccess(res, 'Review analytics retrieved successfully', { analytics });
+});
+
+// @desc    Get book rating insights
+// @route   GET /api/reviews/insights/books
+// @access  Private (Librarian only)
+const getBookRatingInsights = asyncHandler(async (req, res) => {
+  const { limit = 20 } = req.query;
+
+  const insights = await Review.aggregate([
+    {
+      $group: {
+        _id: '$bookId',
+        averageRating: { $avg: '$rating' },
+        totalReviews: { $sum: 1 },
+        ratingDistribution: {
+          $push: '$rating'
+        }
+      }
+    },
+    {
+      $match: {
+        totalReviews: { $gte: 2 } // Only books with at least 2 reviews
+      }
+    },
+    {
+      $lookup: {
+        from: 'books',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'book'
+      }
+    },
+    {
+      $unwind: '$book'
+    },
+    {
+      $addFields: {
+        ratingVariance: {
+          $let: {
+            vars: {
+              mean: '$averageRating',
+              ratings: '$ratingDistribution'
+            },
+            in: {
+              $avg: {
+                $map: {
+                  input: '$$ratings',
+                  as: 'rating',
+                  in: {
+                    $pow: [{ $subtract: ['$$rating', '$$mean'] }, 2]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      $sort: { averageRating: -1, totalReviews: -1 }
+    },
+    {
+      $limit: parseInt(limit)
+    },
+    {
+      $project: {
+        _id: 0,
+        bookId: '$_id',
+        title: '$book.title',
+        author: '$book.author',
+        category: '$book.category',
+        averageRating: { $round: ['$averageRating', 1] },
+        totalReviews: 1,
+        ratingVariance: { $round: ['$ratingVariance', 2] },
+        consistency: {
+          $cond: {
+            if: { $lt: ['$ratingVariance', 1] },
+            then: 'High',
+            else: {
+              $cond: {
+                if: { $lt: ['$ratingVariance', 2] },
+                then: 'Medium',
+                else: 'Low'
+              }
+            }
+          }
+        }
+      }
+    }
+  ]);
+
+  sendSuccess(res, 'Book rating insights retrieved successfully', { insights });
+});
+
 module.exports = {
   createReview,
   getBookReviews,
   getMyReviews,
+  getUserReviews,
   getReviewById,
   updateReview,
   deleteReview,
   getAllReviews,
   getRecentReviews,
-  getTopRatedBooks
+  getTopRatedBooks,
+  getReviewAnalytics,
+  getBookRatingInsights
 };

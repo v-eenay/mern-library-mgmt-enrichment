@@ -196,29 +196,239 @@ const router = express.Router();
  */
 router.get('/', validationMiddleware.bookQuery, booksController.getAllBooks);
 
-// @desc    Advanced search books with comprehensive filtering
-// @route   GET /api/books/search/advanced
-// @access  Public
+/**
+ * @swagger
+ * /api/books/search/advanced:
+ *   get:
+ *     summary: Advanced search books with comprehensive filtering
+ *     description: Search books with advanced filtering options including title, author, category, rating range, and availability.
+ *     tags: [Books]
+ *     security: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - name: title
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Search by book title
+ *         example: gatsby
+ *       - name: author
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Search by author name
+ *         example: fitzgerald
+ *       - name: category
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter by category
+ *         example: Fiction
+ *       - name: minRating
+ *         in: query
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: Minimum average rating
+ *         example: 4.0
+ *       - name: maxRating
+ *         in: query
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: Maximum average rating
+ *         example: 5.0
+ *       - name: available
+ *         in: query
+ *         schema:
+ *           type: boolean
+ *         description: Filter by availability
+ *         example: true
+ *     responses:
+ *       200:
+ *         description: Advanced search results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BooksListResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
 router.get('/search/advanced', validationMiddleware.advancedSearch, booksController.advancedSearchBooks);
 
-// @desc    Get available books
-// @route   GET /api/books/available/list
-// @access  Public
+/**
+ * @swagger
+ * /api/books/available/list:
+ *   get:
+ *     summary: Get available books
+ *     description: Retrieve a list of books that are currently available for borrowing (available > 0).
+ *     tags: [Books]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Available books retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Available books retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     books:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Book'
+ *                     count:
+ *                       type: integer
+ *                       description: Number of available books
+ *                       example: 25
+ */
 router.get('/available/list', booksController.getAvailableBooks);
 
-// @desc    Search books by category
-// @route   GET /api/books/category/:category
-// @access  Public
+/**
+ * @swagger
+ * /api/books/category/{category}:
+ *   get:
+ *     summary: Get books by category
+ *     description: Retrieve all books belonging to a specific category.
+ *     tags: [Books]
+ *     security: []
+ *     parameters:
+ *       - name: category
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Book category name
+ *         example: Fiction
+ *     responses:
+ *       200:
+ *         description: Books in category retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Books in category retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     books:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Book'
+ *                     category:
+ *                       type: string
+ *                       example: Fiction
+ *                     count:
+ *                       type: integer
+ *                       example: 15
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.get('/category/:category', booksController.getBooksByCategory);
 
-// @desc    Get book by ID with reviews
-// @route   GET /api/books/:id
-// @access  Public
+/**
+ * @swagger
+ * /api/books/{id}:
+ *   get:
+ *     summary: Get book by ID with reviews
+ *     description: Retrieve detailed information about a specific book including its reviews and ratings.
+ *     tags: [Books]
+ *     security: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Book retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Book retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     book:
+ *                       $ref: '#/components/schemas/BookResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.get('/:id', booksController.getBookById);
 
-// @desc    Create new book
-// @route   POST /api/books
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books:
+ *   post:
+ *     summary: Create new book
+ *     description: |
+ *       Add a new book to the library catalog. Only librarians and admins can create books.
+ *
+ *       **Required Permission:** `book:create`
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BookRequest'
+ *           example:
+ *             title: The Great Gatsby
+ *             author: F. Scott Fitzgerald
+ *             isbn: 978-0-7432-7356-5
+ *             category: Fiction
+ *             description: A classic American novel set in the Jazz Age
+ *             quantity: 5
+ *     responses:
+ *       201:
+ *         description: Book created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Book created successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     book:
+ *                       $ref: '#/components/schemas/Book'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.post('/',
   authenticate,
   requirePermission(PERMISSIONS.BOOK_CREATE),
@@ -227,9 +437,62 @@ router.post('/',
   booksController.createBook
 );
 
-// @desc    Update book
-// @route   PUT /api/books/:id
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books/{id}:
+ *   put:
+ *     summary: Update book
+ *     description: |
+ *       Update an existing book's information. Only librarians and admins can update books.
+ *
+ *       **Required Permission:** `book:update`
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BookRequest'
+ *           example:
+ *             title: The Great Gatsby (Updated Edition)
+ *             author: F. Scott Fitzgerald
+ *             isbn: 978-0-7432-7356-5
+ *             category: Classic Fiction
+ *             description: A classic American novel set in the Jazz Age - Updated description
+ *             quantity: 7
+ *     responses:
+ *       200:
+ *         description: Book updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Book updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     book:
+ *                       $ref: '#/components/schemas/Book'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.put('/:id',
   authenticate,
   requirePermission(PERMISSIONS.BOOK_UPDATE),
@@ -238,9 +501,53 @@ router.put('/:id',
   booksController.updateBook
 );
 
-// @desc    Delete book
-// @route   DELETE /api/books/:id
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books/{id}:
+ *   delete:
+ *     summary: Delete book
+ *     description: |
+ *       Delete a book from the library catalog. Only librarians and admins can delete books.
+ *       Books with active borrows cannot be deleted.
+ *
+ *       **Required Permission:** `book:delete`
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Book deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Book deleted successfully
+ *       400:
+ *         description: Cannot delete book with active borrows
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               status: error
+ *               message: Cannot delete book with active borrows
+ *               code: BOOK_HAS_ACTIVE_BORROWS
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.delete('/:id',
   authenticate,
   requirePermission(PERMISSIONS.BOOK_DELETE),
@@ -248,9 +555,70 @@ router.delete('/:id',
   booksController.deleteBook
 );
 
-// @desc    Upload book cover image
-// @route   POST /api/books/:id/upload-cover
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books/{id}/upload-cover:
+ *   post:
+ *     summary: Upload book cover image
+ *     description: |
+ *       Upload a cover image for a book. Only librarians and admins can upload covers.
+ *
+ *       **File Requirements:**
+ *       - Supported formats: JPG, JPEG, PNG, GIF
+ *       - Maximum file size: 5MB
+ *       - Rate limited to 10 uploads per hour
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               coverImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: Book cover image file
+ *             required:
+ *               - coverImage
+ *     responses:
+ *       200:
+ *         description: Cover image uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cover image uploaded successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     book:
+ *                       $ref: '#/components/schemas/Book'
+ *                     coverUrl:
+ *                       type: string
+ *                       example: http://localhost:5000/uploads/books/cover-123.jpg
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
 router.post('/:id/upload-cover',
   authenticate,
   requireLibrarian,
@@ -260,9 +628,52 @@ router.post('/:id/upload-cover',
   booksController.uploadBookCover
 );
 
-// @desc    Update book cover image
-// @route   PUT /api/books/:id/update-cover
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books/{id}/update-cover:
+ *   put:
+ *     summary: Update book cover image
+ *     description: Replace an existing book cover image with a new one.
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               coverImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: New book cover image file
+ *             required:
+ *               - coverImage
+ *     responses:
+ *       200:
+ *         description: Cover image updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cover image updated successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.put('/:id/update-cover',
   authenticate,
   requireLibrarian,
@@ -272,20 +683,80 @@ router.put('/:id/update-cover',
   booksController.updateBookCover
 );
 
-
-
-// @desc    Delete book cover image
-// @route   DELETE /api/books/:id/cover
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books/{id}/cover:
+ *   delete:
+ *     summary: Delete book cover image
+ *     description: Remove the cover image from a book.
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Cover image deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cover image deleted successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.delete('/:id/cover',
   authenticate,
   requireLibrarian,
   booksController.deleteBookCover
 );
 
-// @desc    Cleanup orphaned image files
-// @route   POST /api/books/cleanup-orphaned-images
-// @access  Private (Librarian only)
+/**
+ * @swagger
+ * /api/books/cleanup-orphaned-images:
+ *   post:
+ *     summary: Cleanup orphaned image files
+ *     description: Remove orphaned book cover images that are no longer referenced by any books.
+ *     tags: [Books]
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Cleanup completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cleanup completed successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedFiles:
+ *                       type: integer
+ *                       example: 3
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.post('/cleanup-orphaned-images',
   authenticate,
   requireLibrarian,
