@@ -27,10 +27,15 @@ class SeedService {
         };
       }
 
-      // Get admin credentials from environment or use defaults
+      // Get admin credentials from environment (required for security)
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@library.com';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!@#';
+      const adminPassword = process.env.ADMIN_PASSWORD;
       const adminName = process.env.ADMIN_NAME || 'System Administrator';
+
+      // Require password to be set in environment for security
+      if (!adminPassword) {
+        throw new Error('ADMIN_PASSWORD environment variable is required for security. Please set a strong password in your .env file.');
+      }
 
       // Validate password strength
       if (adminPassword.length < 8) {
@@ -168,10 +173,15 @@ class SeedService {
         };
       }
 
-      // Get librarian credentials from environment or use defaults
+      // Get librarian credentials from environment (required for security)
       const librarianEmail = process.env.LIBRARIAN_EMAIL || 'librarian@library.com';
-      const librarianPassword = process.env.LIBRARIAN_PASSWORD || 'Librarian123!';
+      const librarianPassword = process.env.LIBRARIAN_PASSWORD;
       const librarianName = process.env.LIBRARIAN_NAME || 'Head Librarian';
+
+      // Require password to be set in environment for security
+      if (!librarianPassword) {
+        throw new Error('LIBRARIAN_PASSWORD environment variable is required for security. Please set a strong password in your .env file.');
+      }
 
       // Create librarian user (password will be automatically hashed by User model pre-save middleware)
       const librarianUser = new User({

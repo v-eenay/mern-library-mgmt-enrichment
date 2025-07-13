@@ -103,9 +103,14 @@ async function testLogin() {
     consoleUtils.logInfo('🔍 Testing login with seeded credentials...');
 
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@library.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!@#';
+    const adminPassword = process.env.ADMIN_PASSWORD;
     const librarianEmail = process.env.LIBRARIAN_EMAIL || 'librarian@library.com';
-    const librarianPassword = process.env.LIBRARIAN_PASSWORD || 'Librarian123!';
+    const librarianPassword = process.env.LIBRARIAN_PASSWORD;
+
+    if (!adminPassword || !librarianPassword) {
+      consoleUtils.logWarning('⚠️ Admin or Librarian passwords not set in environment variables. Skipping login tests.');
+      return;
+    }
 
     // Test admin login
     const adminUser = await User.findByEmailWithPassword(adminEmail);
@@ -166,9 +171,14 @@ async function main() {
     await testLogin();
 
     console.log('\n✅ Fix completed successfully!');
-    console.log('\nYou can now login with:');
-    console.log(`Admin: ${process.env.ADMIN_EMAIL || 'admin@library.com'} / ${process.env.ADMIN_PASSWORD || 'Admin123!@#'}`);
-    console.log(`Librarian: ${process.env.LIBRARIAN_EMAIL || 'librarian@library.com'} / ${process.env.LIBRARIAN_PASSWORD || 'Librarian123!'}`);
+
+    if (process.env.ADMIN_PASSWORD && process.env.LIBRARIAN_PASSWORD) {
+      console.log('\nYou can now login with:');
+      console.log(`Admin: ${process.env.ADMIN_EMAIL || 'admin@library.com'} / [password from environment]`);
+      console.log(`Librarian: ${process.env.LIBRARIAN_EMAIL || 'librarian@library.com'} / [password from environment]`);
+    } else {
+      console.log('\n⚠️ Please set ADMIN_PASSWORD and LIBRARIAN_PASSWORD in your .env file to use the seeded accounts.');
+    }
 
     // Disconnect and exit
     await disconnectDatabase();

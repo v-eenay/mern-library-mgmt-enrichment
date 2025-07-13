@@ -34,11 +34,14 @@ const register = asyncHandler(async (req, res) => {
 
   await user.save();
 
-  // Generate token
-  const token = generateToken(user._id);
+  // Generate token pair using enhanced JWT service
+  const { accessToken, refreshToken } = jwtService.generateTokenPair(user._id, {
+    role: user.role,
+    email: user.email
+  });
 
-  // Set HTTP-only cookie
-  setAuthCookie(res, token);
+  // Set HTTP-only cookies for both tokens
+  setAuthCookies(res, accessToken, refreshToken);
 
   sendSuccess(res, 'User registered successfully', {
     user: {
@@ -47,7 +50,8 @@ const register = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role
     },
-    token // Still include token in response for backward compatibility
+    accessToken, // Still include token in response for backward compatibility
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m'
   }, 201);
 });
 
