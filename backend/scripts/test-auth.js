@@ -5,6 +5,9 @@
  * Tests login functionality with seeded user credentials
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 const axios = require('axios');
 const consoleUtils = require('../utils/consoleUtils');
 
@@ -85,11 +88,17 @@ async function runTests() {
     passedTests++;
   }
 
-  // Get credentials from environment or use defaults
+  // Get credentials from environment
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@library.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!@#';
+  const adminPassword = process.env.ADMIN_PASSWORD;
   const librarianEmail = process.env.LIBRARIAN_EMAIL || 'librarian@library.com';
-  const librarianPassword = process.env.LIBRARIAN_PASSWORD || 'Librarian123!';
+  const librarianPassword = process.env.LIBRARIAN_PASSWORD;
+
+  if (!adminPassword || !librarianPassword) {
+    console.log('\n⚠️ Admin or Librarian passwords not set in environment variables.');
+    console.log('Please set ADMIN_PASSWORD and LIBRARIAN_PASSWORD in your .env file to run authentication tests.');
+    return false;
+  }
 
   // Test valid logins
   totalTests++;
@@ -136,8 +145,8 @@ async function runTests() {
   if (passedTests === totalTests) {
     consoleUtils.logSuccess('\n🎉 ALL TESTS PASSED! Authentication is working correctly.');
     console.log('\n✅ You can now login with the following credentials:');
-    console.log(`   Admin: ${adminEmail} / ${adminPassword}`);
-    console.log(`   Librarian: ${librarianEmail} / ${librarianPassword}`);
+    console.log(`   Admin: ${adminEmail} / [password from environment]`);
+    console.log(`   Librarian: ${librarianEmail} / [password from environment]`);
   } else {
     consoleUtils.logError(`\n❌ ${totalTests - passedTests} test(s) failed. Please check the issues above.`);
   }

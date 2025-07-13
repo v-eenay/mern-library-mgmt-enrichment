@@ -44,10 +44,10 @@ function showHelp() {
   console.log('  npm run seed status     # Check current status');
   console.log('\nEnvironment Variables:');
   console.log('  ADMIN_EMAIL             # Admin email (default: admin@library.com)');
-  console.log('  ADMIN_PASSWORD          # Admin password (default: Admin123!@#)');
+  console.log('  ADMIN_PASSWORD          # Admin password (REQUIRED - set in .env file)');
   console.log('  ADMIN_NAME              # Admin name (default: System Administrator)');
   console.log('  LIBRARIAN_EMAIL         # Librarian email (default: librarian@library.com)');
-  console.log('  LIBRARIAN_PASSWORD      # Librarian password (default: Librarian123!)');
+  console.log('  LIBRARIAN_PASSWORD      # Librarian password (REQUIRED - set in .env file)');
   console.log('  LIBRARIAN_NAME          # Librarian name (default: Head Librarian)');
   console.log('');
 }

@@ -94,29 +94,31 @@ Configure seeding credentials in your `.env` file:
 ```env
 # Admin User Configuration
 ADMIN_EMAIL=admin@library.com
-ADMIN_PASSWORD=Admin123!@#
+ADMIN_PASSWORD=your_secure_admin_password_here
 ADMIN_NAME=System Administrator
 
-# Librarian User Configuration  
+# Librarian User Configuration
 LIBRARIAN_EMAIL=librarian@library.com
-LIBRARIAN_PASSWORD=Librarian123!
+LIBRARIAN_PASSWORD=your_secure_librarian_password_here
 LIBRARIAN_NAME=Head Librarian
 
 # Safety Controls
 ALLOW_SEEDING=false  # Only set to true for non-dev environments if absolutely necessary
 ```
 
+⚠️ **SECURITY WARNING**: Replace the placeholder passwords with strong, unique passwords in your actual `.env` file.
+
 ## Default Seeded Data
 
 ### Admin User
 - **Email**: admin@library.com (configurable)
-- **Password**: Admin123!@# (configurable)
+- **Password**: Set via `ADMIN_PASSWORD` environment variable
 - **Role**: admin
 - **Permissions**: Full system access
 
 ### Librarian User
 - **Email**: librarian@library.com (configurable)
-- **Password**: Librarian123! (configurable)
+- **Password**: Set via `LIBRARIAN_PASSWORD` environment variable
 - **Role**: librarian
 - **Permissions**: Book and user management
 
