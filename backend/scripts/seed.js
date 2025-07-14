@@ -20,8 +20,14 @@ const command = args[0];
 const COMMANDS = {
   admin: 'Seed admin user',
   librarian: 'Seed librarian user',
+  borrowers: 'Seed borrower users',
   categories: 'Seed default categories',
-  all: 'Seed all initial data',
+  books: 'Seed sample books',
+  reviews: 'Seed sample reviews',
+  borrows: 'Seed sample borrow records',
+  contacts: 'Seed sample contact messages',
+  all: 'Seed basic initial data',
+  'all-test-data': 'Seed comprehensive test data',
   status: 'Check seeding status',
   help: 'Show this help message'
 };
@@ -39,16 +45,22 @@ function showHelp() {
   });
   
   console.log('\nExamples:');
-  console.log('  npm run seed admin      # Seed admin user');
-  console.log('  npm run seed all        # Seed all initial data');
-  console.log('  npm run seed status     # Check current status');
+  console.log('  npm run seed admin           # Seed admin user');
+  console.log('  npm run seed borrowers       # Seed borrower users');
+  console.log('  npm run seed books           # Seed sample books');
+  console.log('  npm run seed all             # Seed basic initial data');
+  console.log('  npm run seed all-test-data   # Seed comprehensive test data');
+  console.log('  npm run seed status          # Check current status');
   console.log('\nEnvironment Variables:');
   console.log('  ADMIN_EMAIL             # Admin email (default: admin@library.com)');
-  console.log('  ADMIN_PASSWORD          # Admin password (REQUIRED - set in .env file)');
+  console.log('  ADMIN_PASSWORD          # Admin password (default: admin123)');
   console.log('  ADMIN_NAME              # Admin name (default: System Administrator)');
   console.log('  LIBRARIAN_EMAIL         # Librarian email (default: librarian@library.com)');
-  console.log('  LIBRARIAN_PASSWORD      # Librarian password (REQUIRED - set in .env file)');
+  console.log('  LIBRARIAN_PASSWORD      # Librarian password (default: librarian123)');
   console.log('  LIBRARIAN_NAME          # Librarian name (default: Head Librarian)');
+  console.log('  BORROWER_EMAIL          # Borrower email (default: borrower@library.com)');
+  console.log('  BORROWER_PASSWORD       # Borrower password (default: borrower123)');
+  console.log('  BORROWER_NAME           # Borrower name (default: Test Borrower)');
   console.log('');
 }
 
@@ -145,14 +157,44 @@ async function executeCommand(command) {
         result = await SeedService.seedLibrarianUser();
         break;
 
+      case 'borrowers':
+        consoleUtils.logInfo('🌱 Seeding borrower users...');
+        result = await SeedService.seedBorrowerUsers();
+        break;
+
       case 'categories':
         consoleUtils.logInfo('🌱 Seeding categories...');
         result = await SeedService.seedCategories();
         break;
 
+      case 'books':
+        consoleUtils.logInfo('🌱 Seeding books...');
+        result = await SeedService.seedBooks();
+        break;
+
+      case 'reviews':
+        consoleUtils.logInfo('🌱 Seeding reviews...');
+        result = await SeedService.seedReviews();
+        break;
+
+      case 'borrows':
+        consoleUtils.logInfo('🌱 Seeding borrow records...');
+        result = await SeedService.seedBorrows();
+        break;
+
+      case 'contacts':
+        consoleUtils.logInfo('🌱 Seeding contact messages...');
+        result = await SeedService.seedContactMessages();
+        break;
+
       case 'all':
         consoleUtils.logInfo('🌱 Seeding all initial data...');
         result = await SeedService.seedAll();
+        break;
+
+      case 'all-test-data':
+        consoleUtils.logInfo('🌱 Seeding comprehensive test data...');
+        result = await SeedService.seedAllTestData();
         break;
 
       case 'status':

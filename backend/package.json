@@ -10,10 +10,17 @@
     "seed": "node scripts/seed.js",
     "seed:admin": "node scripts/seed.js admin",
     "seed:librarian": "node scripts/seed.js librarian",
+    "seed:borrowers": "node scripts/seed.js borrowers",
     "seed:categories": "node scripts/seed.js categories",
+    "seed:books": "node scripts/seed.js books",
+    "seed:reviews": "node scripts/seed.js reviews",
+    "seed:borrows": "node scripts/seed.js borrows",
+    "seed:contacts": "node scripts/seed.js contacts",
     "seed:all": "node scripts/seed.js all",
+    "seed:all-test-data": "node scripts/seed.js all-test-data",
     "seed:status": "node scripts/seed.js status",
     "seed:fix": "node scripts/fix-seeded-users.js",
+    "seed:clear": "node scripts/clear-db.js",
     "test:auth": "node scripts/test-auth.js"
   },
   "keywords": [

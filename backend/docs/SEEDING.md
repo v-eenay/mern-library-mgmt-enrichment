@@ -26,23 +26,24 @@ The seeding system provides a safe and convenient way to populate your database 
 # Check seeding status
 npm run seed:status
 
-# Seed admin user only
-npm run seed:admin
+# Individual seeding commands
+npm run seed:admin           # Seed admin user
+npm run seed:librarian       # Seed librarian user
+npm run seed:borrowers       # Seed borrower users (5 test accounts)
+npm run seed:categories      # Seed default categories
+npm run seed:books           # Seed sample books (15+ books)
+npm run seed:reviews         # Seed sample reviews
+npm run seed:borrows         # Seed sample borrow records
+npm run seed:contacts        # Seed sample contact messages
 
-# Seed librarian user only
-npm run seed:librarian
+# Comprehensive seeding commands
+npm run seed:all             # Seed basic initial data (users + categories)
+npm run seed:all-test-data   # Seed comprehensive test data (everything)
 
-# Seed default categories only
-npm run seed:categories
-
-# Seed all initial data
-npm run seed:all
-
-# Fix seeded users (if login issues occur)
-npm run seed:fix
-
-# Test authentication with seeded credentials
-npm run test:auth
+# Utility commands
+npm run seed:fix             # Fix seeded users (if login issues occur)
+npm run seed:clear           # Clear all database collections
+npm run test:auth            # Test authentication with seeded credentials
 
 # Show help
 npm run seed help
@@ -94,33 +95,47 @@ Configure seeding credentials in your `.env` file:
 ```env
 # Admin User Configuration
 ADMIN_EMAIL=admin@library.com
-ADMIN_PASSWORD=your_secure_admin_password_here
+ADMIN_PASSWORD=admin123
 ADMIN_NAME=System Administrator
 
 # Librarian User Configuration
 LIBRARIAN_EMAIL=librarian@library.com
-LIBRARIAN_PASSWORD=your_secure_librarian_password_here
+LIBRARIAN_PASSWORD=librarian123
 LIBRARIAN_NAME=Head Librarian
 
+# Borrower User Configuration
+BORROWER_EMAIL=borrower@library.com
+BORROWER_PASSWORD=borrower123
+BORROWER_NAME=Test Borrower
+
 # Safety Controls
-ALLOW_SEEDING=false  # Only set to true for non-dev environments if absolutely necessary
+ALLOW_SEEDING=true  # Set to false in production environments
 ```
 
-⚠️ **SECURITY WARNING**: Replace the placeholder passwords with strong, unique passwords in your actual `.env` file.
+⚠️ **DEVELOPMENT PASSWORDS**: These are simple passwords for development/testing convenience. **Change these in production environments!**
 
 ## Default Seeded Data
 
 ### Admin User
 - **Email**: admin@library.com (configurable)
-- **Password**: Set via `ADMIN_PASSWORD` environment variable
+- **Password**: admin123 (development default)
 - **Role**: admin
 - **Permissions**: Full system access
 
 ### Librarian User
 - **Email**: librarian@library.com (configurable)
-- **Password**: Set via `LIBRARIAN_PASSWORD` environment variable
+- **Password**: librarian123 (development default)
 - **Role**: librarian
 - **Permissions**: Book and user management
+
+### Borrower Users (5 test accounts)
+- **Primary**: borrower@library.com / borrower123
+- **Alice Johnson**: alice@library.com / alice123
+- **Bob Smith**: bob@library.com / bob123
+- **Carol Davis**: carol@library.com / carol123
+- **David Wilson**: david@library.com / david123
+- **Role**: borrower
+- **Permissions**: Book borrowing and reviewing
 
 ### Categories
 - Fiction
@@ -131,6 +146,40 @@ ALLOW_SEEDING=false  # Only set to true for non-dev environments if absolutely n
 - Biography
 - History
 - Technology
+
+## 🧪 Comprehensive Test Data
+
+When using `npm run seed:all-test-data`, the system creates a complete testing environment:
+
+### 📚 Sample Books (15+ titles)
+- **Fiction**: To Kill a Mockingbird, 1984, Pride and Prejudice, The Great Gatsby, Harry Potter
+- **Non-Fiction**: Sapiens, Educated, The Immortal Life of Henrietta Lacks
+- **Science**: A Brief History of Time, The Selfish Gene, Cosmos
+- **Technology**: Clean Code, The Pragmatic Programmer, Design Patterns
+- **History**: The Guns of August, A People's History of the United States
+
+### 👥 User Accounts (8 total)
+- **1 Admin**: Full system access
+- **1 Librarian**: Book and user management
+- **5 Borrowers**: Various test users for borrowing scenarios
+
+### 📖 Borrow Records (8 records)
+- **Active borrows**: Currently borrowed books
+- **Overdue borrows**: Books past due date
+- **Returned borrows**: Completed borrowing history
+- **Various dates**: Realistic timeline spanning weeks/months
+
+### ⭐ Reviews (8+ reviews)
+- **Ratings**: 1-5 star ratings across different books
+- **Comments**: Realistic review text for testing
+- **Multiple users**: Reviews from different borrower accounts
+- **Book coverage**: Reviews for popular books
+
+### 📧 Contact Messages (6 messages)
+- **Categories**: Book requests, technical support, general inquiries, complaints, suggestions
+- **Statuses**: Pending, in progress, resolved
+- **Priorities**: Low, medium, high priority levels
+- **Realistic content**: Sample messages for testing contact system
 
 ## Safety Mechanisms
 
