@@ -29,8 +29,13 @@ class SeedService {
 
       // Get admin credentials from environment
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@library.com';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      const adminPassword = process.env.ADMIN_PASSWORD;
       const adminName = process.env.ADMIN_NAME || 'System Administrator';
+
+      // Validate that password is provided via environment variable
+      if (!adminPassword) {
+        throw new Error('ADMIN_PASSWORD environment variable is required for seeding');
+      }
 
       // Validate password strength
       if (adminPassword.length < 8) {
@@ -170,8 +175,13 @@ class SeedService {
 
       // Get librarian credentials from environment
       const librarianEmail = process.env.LIBRARIAN_EMAIL || 'librarian@library.com';
-      const librarianPassword = process.env.LIBRARIAN_PASSWORD || 'librarian123';
+      const librarianPassword = process.env.LIBRARIAN_PASSWORD;
       const librarianName = process.env.LIBRARIAN_NAME || 'Head Librarian';
+
+      // Validate that password is provided via environment variable
+      if (!librarianPassword) {
+        throw new Error('LIBRARIAN_PASSWORD environment variable is required for seeding');
+      }
 
       // Create librarian user (password will be automatically hashed by User model pre-save middleware)
       const librarianUser = new User({
@@ -307,8 +317,19 @@ class SeedService {
 
       // Get borrower credentials from environment
       const borrowerEmail = process.env.BORROWER_EMAIL || 'borrower@library.com';
-      const borrowerPassword = process.env.BORROWER_PASSWORD || 'borrower123';
+      const borrowerPassword = process.env.BORROWER_PASSWORD;
       const borrowerName = process.env.BORROWER_NAME || 'Test Borrower';
+
+      // Validate that password is provided via environment variable
+      if (!borrowerPassword) {
+        throw new Error('BORROWER_PASSWORD environment variable is required for seeding');
+      }
+
+      // Get additional borrower passwords from environment or use secure defaults
+      const alicePassword = process.env.ALICE_PASSWORD || borrowerPassword;
+      const bobPassword = process.env.BOB_PASSWORD || borrowerPassword;
+      const carolPassword = process.env.CAROL_PASSWORD || borrowerPassword;
+      const davidPassword = process.env.DAVID_PASSWORD || borrowerPassword;
 
       // Create multiple test borrower users
       const borrowers = [
@@ -322,28 +343,28 @@ class SeedService {
         {
           name: 'Alice Johnson',
           email: 'alice@library.com',
-          password: 'alice123',
+          password: alicePassword,
           role: 'borrower',
           isEmailVerified: true
         },
         {
           name: 'Bob Smith',
           email: 'bob@library.com',
-          password: 'bob123',
+          password: bobPassword,
           role: 'borrower',
           isEmailVerified: true
         },
         {
           name: 'Carol Davis',
           email: 'carol@library.com',
-          password: 'carol123',
+          password: carolPassword,
           role: 'borrower',
           isEmailVerified: true
         },
         {
           name: 'David Wilson',
           email: 'david@library.com',
-          password: 'david123',
+          password: davidPassword,
           role: 'borrower',
           isEmailVerified: true
         }
