@@ -249,10 +249,10 @@ const bookCoverUploadAbuseProtection = rateLimit({
   }
 });
 
-// Enhanced API endpoint rate limiting
+// Enhanced API endpoint rate limiting (more permissive in development)
 const apiEndpointRateLimit = securityMiddleware.createAdvancedRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // 200 requests per window
+  max: process.env.NODE_ENV === 'development' ? 1000 : 200, // 1000 in dev, 200 in production
   message: {
     status: 'error',
     message: 'Too many API requests from this IP, please try again later.',
@@ -282,10 +282,10 @@ const progressiveDelay = securityMiddleware.createProgressiveDelay({
   maxDelayMs: 30000
 });
 
-// Rate limiting for database seeding operations
+// Rate limiting for database seeding operations (more permissive in development)
 const seedingRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 seeding requests per hour
+  max: process.env.NODE_ENV === 'development' ? 50 : 5, // 50 in dev, 5 in production
   message: {
     status: 'error',
     message: 'Too many seeding requests from this IP, please try again later.',

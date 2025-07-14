@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Library Management System API - Professional book management solution with JWT authentication, RBAC, and comprehensive features">
+    <meta name="keywords" content="library, management, API, books, express, mongodb, jwt, rbac">
+    <meta name="author" content="Binay Koirala">
+    <title>Library Management System API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            background: #fafafa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #000;
+            color: #fff;
+            padding: 24px 32px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+
+        .main-content {
+            padding: 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+        }
+
+        .section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+        }
+
+        .nav-links {
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-bottom: 8px;
+        }
+
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            font-weight: 400;
+            padding: 6px 12px;
+            display: block;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .nav-links a:hover {
+            background: #000;
+            color: #fff;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #ccc;
+        }
+
+        .status-online {
+            background: #22c55e;
+        }
+
+        .endpoints-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .endpoint-item {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 12px;
+        }
+
+        .endpoint-method {
+            font-weight: 600;
+            color: #000;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .endpoint-path {
+            color: #666;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 24px 32px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .footer-links {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: #333;
+            text-decoration: none;
+            margin: 0 12px;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: #000;
+        }
+
+        .attribution {
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .attribution a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .attribution a:hover {
+            color: #000;
+        }
+
+        /* Seeding Interface Styles */
+        .seeding-container {
+            margin-top: 16px;
+        }
+
+        .seeding-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .seeding-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .seeding-group {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .seeding-group h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 4px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .seeding-status {
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .seeding-status.show {
+            display: block;
+        }
+
+        .seeding-status.success {
+            background: #f0fdf4;
+            border-color: #22c55e;
+            color: #166534;
+        }
+
+        .seeding-status.error {
+            background: #fef2f2;
+            border-color: #ef4444;
+            color: #dc2626;
+        }
+
+        .seeding-status.info {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 20px 24px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .main-content {
+                padding: 24px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .endpoints-list {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .footer {
+                padding: 20px 24px;
+            }
+
+            .footer-links a {
+                display: block;
+                margin: 6px 0;
+            }
+
+            .seeding-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .seeding-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                margin: 2px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Library Management System</h1>
+            <p class="subtitle">Professional API for Modern Library Management</p>
+        </header>
+
+        <main class="main-content">
+            <div class="grid">
+                <section class="section">
+                    <h2>Navigation</h2>
+                    <ul class="nav-links">
+                        <li><a href="/api-docs" target="_blank">API Documentation</a></li>
+                        <li><a href="/health" target="_blank">Health Check</a></li>
+                        <li><a href="#" onclick="checkSystemStatus()">Refresh Status</a></li>
+                    </ul>
+                </section>
+
+                <section class="section">
+                    <h2>System Status</h2>
+                    <div class="status-item">
+                        <span class="status-indicator status-online"></span>
+                        <span>API Server: <strong>Online</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator" id="db-status"></span>
+                        <span>Database: <strong id="db-status-text">Checking...</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator"></span>
+                        <span>Environment: <strong id="environment">Loading...</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator"></span>
+                        <span>Uptime: <strong id="uptime">Loading...</strong></span>
+                    </div>
+                </section>
+            </div>
+
+            <section class="section">
+                <h2>Database Seeding (Development)</h2>
+                <div class="seeding-container">
+                    <div class="seeding-actions">
+                        <button class="btn btn-primary" onclick="checkSeedingStatus()">Check Status</button>
+                        <button class="btn btn-danger" onclick="clearDatabase()">Clear Database</button>
+                    </div>
+
+                    <div class="seeding-grid">
+                        <div class="seeding-group">
+                            <h3>Individual Seeding</h3>
+                            <button class="btn btn-secondary" onclick="seedData('admin')" title="Create admin user account">
+                                Seed Admin User
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('librarian')" title="Create librarian user account">
+                                Seed Librarian User
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('borrowers')" title="Create 5 borrower test accounts">
+                                Seed Borrower Users
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('categories')" title="Create default book categories">
+                                Seed Categories
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('books')" title="Create 16 sample books across all categories">
+                                Seed Sample Books
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('reviews')" title="Create realistic book reviews from borrowers">
+                                Seed Book Reviews
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('borrows')" title="Create borrow records with various statuses">
+                                Seed Borrow Records
+                            </button>
+                            <button class="btn btn-secondary" onclick="seedData('contacts')" title="Create sample contact messages">
+                                Seed Contact Messages
+                            </button>
+                        </div>
+
+                        <div class="seeding-group">
+                            <h3>Comprehensive Seeding</h3>
+                            <button class="btn btn-success" onclick="seedData('all')" title="Seed basic initial data (users + categories)">
+                                Seed Basic Data
+                            </button>
+                            <button class="btn btn-success" onclick="seedData('all-test-data')" title="Seed complete test environment with all data">
+                                Seed All Test Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="seeding-status" class="seeding-status"></div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>API Endpoints</h2>
+                <div class="endpoints-list">
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Auth</div>
+                        <div class="endpoint-path">/api/auth/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Books</div>
+                        <div class="endpoint-path">/api/books/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Borrowing</div>
+                        <div class="endpoint-path">/api/borrows/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Reviews</div>
+                        <div class="endpoint-path">/api/reviews/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Categories</div>
+                        <div class="endpoint-path">/api/categories/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Users</div>
+                        <div class="endpoint-path">/api/users/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">Contact</div>
+                        <div class="endpoint-path">/api/contact/*</div>
+                    </div>
+                    <div class="endpoint-item">
+                        <div class="endpoint-method">RBAC</div>
+                        <div class="endpoint-path">/api/rbac/*</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="https://github.com/v-eenay/mern-library-mgmt-enrichment.git" target="_blank">GitHub Repository</a>
+                <a href="/api-docs" target="_blank">API Documentation</a>
+            </div>
+            <div class="attribution">
+                Developed by <a href="mailto:koiralavinay@gmail.com">Binay Koirala</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Utility functions
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('seeding-status');
+            statusDiv.textContent = message;
+            statusDiv.className = `seeding-status show ${type}`;
+
+            // Auto-hide after 10 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.className = 'seeding-status';
+                }, 10000);
+            }
+        }
+
+        function disableButtons(disabled = true) {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.disabled = disabled);
+        }
+
+        // Load system information
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    document.getElementById('db-status').className = 'status-indicator status-online';
+                    document.getElementById('db-status-text').textContent = 'Connected';
+                    document.getElementById('environment').textContent = data.data.environment || 'Unknown';
+                    document.getElementById('uptime').textContent = data.data.uptime || 'Unknown';
+                }
+            } catch (error) {
+                document.getElementById('db-status').className = 'status-indicator';
+                document.getElementById('db-status').style.background = '#ccc';
+                document.getElementById('db-status-text').textContent = 'Disconnected';
+                document.getElementById('environment').textContent = 'Unknown';
+                document.getElementById('uptime').textContent = 'Unknown';
+            }
+        }
+
+        async function checkSystemStatus() {
+            await loadSystemInfo();
+            showStatus('✅ System status refreshed!', 'success');
+        }
+
+        // Seeding functions
+        async function checkSeedingStatus() {
+            disableButtons(true);
+            showStatus('🔍 Checking seeding status...', 'info');
+
+            try {
+                const response = await fetch('/api/seed/status');
+                const data = await response.json();
+
+                if (response.ok) {
+                    let statusMessage = '📊 Current Database Status:\n\n';
+
+                    if (data.data) {
+                        statusMessage += `👥 Users: ${data.data.users || 0}\n`;
+                        statusMessage += `📚 Books: ${data.data.books || 0}\n`;
+                        statusMessage += `📂 Categories: ${data.data.categories || 0}\n`;
+                        statusMessage += `📖 Borrows: ${data.data.borrows || 0}\n`;
+                        statusMessage += `⭐ Reviews: ${data.data.reviews || 0}\n`;
+                        statusMessage += `📧 Contact Messages: ${data.data.contactMessages || 0}\n`;
+                    } else {
+                        statusMessage += 'No data found in database.';
+                    }
+
+                    showStatus(statusMessage, 'info');
+                } else {
+                    showStatus(`❌ Error checking status: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                disableButtons(false);
+            }
+        }
+
+        async function clearDatabase() {
+            if (!confirm('⚠️ WARNING: This will permanently delete ALL data from the database!\n\nThis action cannot be undone. Are you sure you want to continue?')) {
+                return;
+            }
+
+            if (!confirm('🚨 FINAL CONFIRMATION: You are about to clear the entire database.\n\nType "YES" in the next dialog to confirm.')) {
+                return;
+            }
+
+            const confirmation = prompt('Type "DELETE ALL DATA" to confirm database clearing:');
+            if (confirmation !== 'DELETE ALL DATA') {
+                showStatus('❌ Database clearing cancelled - confirmation text did not match.', 'error');
+                return;
+            }
+
+            disableButtons(true);
+            showStatus('🗑️ Clearing database... This may take a moment.', 'info');
+
+            try {
+                const response = await fetch('/api/seed/reset', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ ${data.message}\n\nDatabase has been completely cleared.`, 'success');
+                } else {
+                    showStatus(`❌ Error clearing database: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                disableButtons(false);
+            }
+        }
+
+        async function seedData(type) {
+            const seedingDescriptions = {
+                'admin': 'admin user account',
+                'librarian': 'librarian user account',
+                'borrowers': '5 borrower test accounts',
+                'categories': 'default book categories',
+                'books': '16 sample books across all categories',
+                'reviews': 'realistic book reviews from borrowers',
+                'borrows': 'borrow records with various statuses',
+                'contacts': 'sample contact messages',
+                'all': 'basic initial data (users + categories)',
+                'all-test-data': 'comprehensive test environment with all data'
+            };
+
+            const description = seedingDescriptions[type] || type;
+
+            if (!confirm(`This will seed the database with ${description}.\n\nContinue?`)) {
+                return;
+            }
+
+            disableButtons(true);
+            showStatus(`🌱 Seeding ${description}...`, 'info');
+
+            try {
+                const response = await fetch(`/api/seed/${type}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let successMessage = `✅ ${data.message}\n\n`;
+
+                    // Add specific information based on seeding type
+                    if (type === 'admin' && data.data?.email) {
+                        successMessage += `Admin credentials:\nEmail: ${data.data.email}\nPassword: admin123 (development)`;
+                    } else if (type === 'librarian' && data.data?.email) {
+                        successMessage += `Librarian credentials:\nEmail: ${data.data.email}\nPassword: librarian123 (development)`;
+                    } else if (type === 'borrowers' && data.data?.length) {
+                        successMessage += `Created ${data.data.length} borrower accounts:\n`;
+                        data.data.forEach(user => {
+                            successMessage += `• ${user.name}: ${user.email}\n`;
+                        });
+                        successMessage += '\nAll borrower passwords: [name]123 (e.g., alice123)';
+                    } else if (type === 'books' && data.data?.length) {
+                        successMessage += `Created ${data.data.length} books across multiple categories.`;
+                    } else if (type === 'all-test-data') {
+                        successMessage += 'Complete test environment created with:\n';
+                        successMessage += '• Users (admin, librarian, 5 borrowers)\n';
+                        successMessage += '• 16 sample books\n';
+                        successMessage += '• Borrow records and reviews\n';
+                        successMessage += '• Contact messages and categories\n\n';
+                        successMessage += 'Login credentials:\n';
+                        successMessage += '• Admin: admin@library.com / admin123\n';
+                        successMessage += '• Librarian: librarian@library.com / librarian123\n';
+                        successMessage += '• Borrowers: [name]@library.com / [name]123';
+                    }
+
+                    showStatus(successMessage, 'success');
+                } else {
+                    showStatus(`❌ Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                disableButtons(false);
+            }
+        }
+
+        // Load system info on page load
+        document.addEventListener('DOMContentLoaded', loadSystemInfo);
+    </script>
+</body>
+</html>
