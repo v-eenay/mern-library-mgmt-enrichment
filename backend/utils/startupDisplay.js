@@ -71,7 +71,7 @@ class StartupDisplay {
     const warnings = [];
 
     // Check for default JWT secret
-    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key') {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes('REPLACE_WITH')) {
       warnings.push('Default JWT');
     }
 

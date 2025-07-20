@@ -2,28 +2,19 @@
 
 ## Environment Variables Setup
 
-### For Development
+### For Development and Production
 
-1. **Copy the development template:**
-   ```bash
-   cp .env.development.example .env
-   ```
-
-2. **The development template includes secure but convenient passwords for local testing.**
-
-### For Production
-
-1. **Copy the production template:**
+1. **Copy the environment template:**
    ```bash
    cp .env.example .env
    ```
 
 2. **Replace ALL placeholder values with secure, unique passwords:**
-   - `ADMIN_PASSWORD=your_secure_admin_password_here` → Use a strong, unique password
-   - `LIBRARIAN_PASSWORD=your_secure_librarian_password_here` → Use a strong, unique password
-   - `BORROWER_PASSWORD=your_secure_borrower_password_here` → Use a strong, unique password
-   - `JWT_SECRET=your_super_secret_jwt_key_here...` → Use a cryptographically secure key
-   - `EMAIL_PASS=your_secure_app_password_here` → Use your actual email app password
+   - `ADMIN_PASSWORD=REPLACE_WITH_SECURE_PASSWORD` → Use a strong, unique password
+   - `LIBRARIAN_PASSWORD=REPLACE_WITH_SECURE_PASSWORD` → Use a strong, unique password
+   - `BORROWER_PASSWORD=REPLACE_WITH_SECURE_PASSWORD` → Use a strong, unique password
+   - `JWT_SECRET=REPLACE_WITH_SECURE_JWT_KEY` → Use a cryptographically secure key
+   - `EMAIL_PASS=REPLACE_WITH_EMAIL_PASSWORD` → Use your actual email app password
 
 ## Required Environment Variables
 
@@ -127,7 +118,7 @@ The application includes security monitoring features:
 
 Configure monitoring with:
 ```env
-SECURITY_MONITOR_TOKEN=your_secure_monitoring_token
+SECURITY_MONITOR_TOKEN=REPLACE_WITH_MONITORING_TOKEN
 SUSPICIOUS_PATTERN_DETECTION=true
 XSS_PROTECTION=true
 MONGODB_SANITIZATION=true

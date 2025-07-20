@@ -107,8 +107,8 @@ backend/
 MONGODB_URI=mongodb://localhost:27017/library-management
 
 # JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key
-JWT_REFRESH_SECRET=your-refresh-secret-key
+JWT_SECRET=REPLACE_WITH_YOUR_JWT_SECRET
+JWT_REFRESH_SECRET=REPLACE_WITH_YOUR_REFRESH_SECRET
 JWT_EXPIRE=15m
 JWT_REFRESH_EXPIRE=7d
 

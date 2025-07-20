@@ -36,18 +36,18 @@ class JWTService {
 
     // Check for default/weak secrets
     const weakSecrets = [
-      'your_super_secret_jwt_key_here',
+      'REPLACE_WITH',
       'secret',
       'jwt_secret',
       'change_me',
       'default'
     ];
 
-    if (weakSecrets.some(weak => jwtSecret.toLowerCase().includes(weak))) {
+    if (weakSecrets.some(weak => jwtSecret.toLowerCase().includes(weak.toLowerCase()))) {
       console.warn('⚠️  JWT_SECRET appears to be a default/weak secret. Please change it in production!');
     }
 
-    if (weakSecrets.some(weak => refreshSecret.toLowerCase().includes(weak))) {
+    if (weakSecrets.some(weak => refreshSecret.toLowerCase().includes(weak.toLowerCase()))) {
       console.warn('⚠️  JWT_REFRESH_SECRET appears to be a default/weak secret. Please change it in production!');
     }
   }

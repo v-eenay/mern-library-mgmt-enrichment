@@ -28,8 +28,8 @@ npm start
 
 ```env
 MONGODB_URI=mongodb://localhost:27017/library-management
-JWT_SECRET=your-super-secret-jwt-key
-JWT_REFRESH_SECRET=your-refresh-secret-key
+JWT_SECRET=REPLACE_WITH_YOUR_JWT_SECRET
+JWT_REFRESH_SECRET=REPLACE_WITH_YOUR_REFRESH_SECRET
 PORT=5000
 NODE_ENV=development
 ```
