@@ -156,23 +156,23 @@ The frontend includes pre-configured demo credentials for testing different user
 
 ### Admin Account
 - **Email:** `admin@library.com`
-- **Password:** `admin123`
+- **Password:** `[configured in backend .env]`
 - **Access:** Full system access, user management, all features
 
 ### Librarian Account
 - **Email:** `librarian@library.com`
-- **Password:** `librarian123`
+- **Password:** `[configured in backend .env]`
 - **Access:** Book management, user oversight, borrowing management
 
 ### Borrower Account
 - **Email:** `borrower@library.com`
-- **Password:** `borrower123`
+- **Password:** `[configured in backend .env]`
 - **Access:** Browse books, borrow/return, write reviews
 
 ### Additional Demo Users
-- **User 1:** `john.doe@example.com` / `password123`
-- **User 2:** `jane.smith@example.com` / `password123`
-- **User 3:** `mike.wilson@example.com` / `password123`
+- **User 1:** `alice@library.com` / `[configured in backend .env]`
+- **User 2:** `bob@library.com` / `[configured in backend .env]`
+- **User 3:** `carol@library.com` / `[configured in backend .env]`
 
 ## 🎨 UI/UX Features
 

@@ -134,7 +134,7 @@ router.use(requireMinimumRole('librarian'));
  *           example:
  *             name: Jane Smith
  *             email: jane.smith@example.com
- *             password: securePassword123
+ *             password: SecurePass2024!
  *             role: borrower
  *     responses:
  *       201:

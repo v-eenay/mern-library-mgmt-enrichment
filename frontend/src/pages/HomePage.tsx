@@ -171,7 +171,7 @@ const HomePage = () => {
                 <p className="text-sm text-gray-600 mb-3">Full system access</p>
                 <div className="text-xs bg-gray-50 p-3 rounded font-mono">
                   <div>admin@library.com</div>
-                  <div>admin123</div>
+                  <div>[check .env file]</div>
                 </div>
               </div>
               
@@ -183,7 +183,7 @@ const HomePage = () => {
                 <p className="text-sm text-gray-600 mb-3">Manage books & users</p>
                 <div className="text-xs bg-gray-50 p-3 rounded font-mono">
                   <div>librarian@library.com</div>
-                  <div>librarian123</div>
+                  <div>[check .env file]</div>
                 </div>
               </div>
               
@@ -195,7 +195,7 @@ const HomePage = () => {
                 <p className="text-sm text-gray-600 mb-3">Browse & borrow books</p>
                 <div className="text-xs bg-gray-50 p-3 rounded font-mono">
                   <div>borrower@library.com</div>
-                  <div>borrower123</div>
+                  <div>[check .env file]</div>
                 </div>
               </div>
             </div>

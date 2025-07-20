@@ -53,13 +53,13 @@ function showHelp() {
   console.log('  npm run seed status          # Check current status');
   console.log('\nEnvironment Variables:');
   console.log('  ADMIN_EMAIL             # Admin email (default: admin@library.com)');
-  console.log('  ADMIN_PASSWORD          # Admin password (default: admin123)');
+  console.log('  ADMIN_PASSWORD          # Admin password (required from environment)');
   console.log('  ADMIN_NAME              # Admin name (default: System Administrator)');
   console.log('  LIBRARIAN_EMAIL         # Librarian email (default: librarian@library.com)');
-  console.log('  LIBRARIAN_PASSWORD      # Librarian password (default: librarian123)');
+  console.log('  LIBRARIAN_PASSWORD      # Librarian password (required from environment)');
   console.log('  LIBRARIAN_NAME          # Librarian name (default: Head Librarian)');
   console.log('  BORROWER_EMAIL          # Borrower email (default: borrower@library.com)');
-  console.log('  BORROWER_PASSWORD       # Borrower password (default: borrower123)');
+  console.log('  BORROWER_PASSWORD       # Borrower password (required from environment)');
   console.log('  BORROWER_NAME           # Borrower name (default: Test Borrower)');
   console.log('');
 }

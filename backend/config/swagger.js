@@ -484,7 +484,7 @@ const swaggerDefinition = {
             type: 'string',
             minLength: 6,
             description: 'User password',
-            example: 'securePassword123'
+            example: 'SecurePass123!'
           },
           role: {
             type: 'string',
@@ -508,7 +508,7 @@ const swaggerDefinition = {
           password: {
             type: 'string',
             description: 'User password',
-            example: 'securePassword123'
+            example: 'SecurePass123!'
           }
         },
         required: ['email', 'password']
@@ -741,13 +741,13 @@ const swaggerDefinition = {
           currentPassword: {
             type: 'string',
             description: 'Current password',
-            example: 'currentPassword123'
+            example: 'CurrentPass123!'
           },
           newPassword: {
             type: 'string',
             minLength: 6,
             description: 'New password',
-            example: 'newSecurePassword123'
+            example: 'NewSecurePass123!'
           }
         },
         required: ['currentPassword', 'newPassword']

@@ -667,15 +667,15 @@
 
                     // Add specific information based on seeding type
                     if (type === 'admin' && data.data?.email) {
-                        successMessage += `Admin credentials:\nEmail: ${data.data.email}\nPassword: admin123 (development)`;
+                        successMessage += `Admin credentials:\nEmail: ${data.data.email}\nPassword: [check your .env file]`;
                     } else if (type === 'librarian' && data.data?.email) {
-                        successMessage += `Librarian credentials:\nEmail: ${data.data.email}\nPassword: librarian123 (development)`;
+                        successMessage += `Librarian credentials:\nEmail: ${data.data.email}\nPassword: [check your .env file]`;
                     } else if (type === 'borrowers' && data.data?.length) {
                         successMessage += `Created ${data.data.length} borrower accounts:\n`;
                         data.data.forEach(user => {
                             successMessage += `• ${user.name}: ${user.email}\n`;
                         });
-                        successMessage += '\nAll borrower passwords: [name]123 (e.g., alice123)';
+                        successMessage += '\nAll borrower passwords: [check your .env file]';
                     } else if (type === 'books' && data.data?.length) {
                         successMessage += `Created ${data.data.length} books across multiple categories.`;
                     } else if (type === 'all-test-data') {
@@ -685,9 +685,9 @@
                         successMessage += '• Borrow records and reviews\n';
                         successMessage += '• Contact messages and categories\n\n';
                         successMessage += 'Login credentials:\n';
-                        successMessage += '• Admin: admin@library.com / admin123\n';
-                        successMessage += '• Librarian: librarian@library.com / librarian123\n';
-                        successMessage += '• Borrowers: [name]@library.com / [name]123';
+                        successMessage += '• Admin: admin@library.com / [check .env]\n';
+                        successMessage += '• Librarian: librarian@library.com / [check .env]\n';
+                        successMessage += '• Borrowers: [name]@library.com / [check .env]';
                     }
 
                     showStatus(successMessage, 'success');

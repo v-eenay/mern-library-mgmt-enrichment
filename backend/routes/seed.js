@@ -118,7 +118,7 @@ router.get('/status', seedController.getSeedingStatus);
  *       
  *       **Environment Variables:**
  *       - `ADMIN_EMAIL`: Admin email (default: admin@library.com)
- *       - `ADMIN_PASSWORD`: Admin password (default: Admin123!@#)
+ *       - `ADMIN_PASSWORD`: Admin password (required from environment)
  *       - `ADMIN_NAME`: Admin name (default: System Administrator)
  *       
  *       **Security:**
@@ -167,7 +167,7 @@ router.post('/admin', seedingRateLimit, seedController.seedAdmin);
  *       
  *       **Environment Variables:**
  *       - `LIBRARIAN_EMAIL`: Librarian email (default: librarian@library.com)
- *       - `LIBRARIAN_PASSWORD`: Librarian password (default: Librarian123!)
+ *       - `LIBRARIAN_PASSWORD`: Librarian password (required from environment)
  *       - `LIBRARIAN_NAME`: Librarian name (default: Head Librarian)
  *     tags: [Database Seeding]
  *     security: []

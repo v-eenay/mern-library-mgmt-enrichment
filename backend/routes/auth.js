@@ -28,14 +28,14 @@ const router = express.Router();
  *               value:
  *                 name: John Doe
  *                 email: john.doe@example.com
- *                 password: SecurePassword123!
+ *                 password: StrongPass2024!
  *                 role: borrower
  *             librarian:
  *               summary: Register as librarian (admin only)
  *               value:
  *                 name: Jane Smith
  *                 email: jane.smith@library.com
- *                 password: LibrarianPass123!
+ *                 password: LibrarianPass2024!
  *                 role: librarian
  *     responses:
  *       201:
@@ -83,12 +83,12 @@ router.post('/register', authRateLimit, progressiveDelay, validationMiddleware.r
  *               summary: Borrower login
  *               value:
  *                 email: borrower@test.com
- *                 password: password123
+ *                 password: UserPass2024!
  *             librarian:
  *               summary: Librarian login
  *               value:
  *                 email: librarian@test.com
- *                 password: password123
+ *                 password: LibPass2024!
  *     responses:
  *       200:
  *         description: Login successful
@@ -221,8 +221,8 @@ router.put('/profile', authenticate, validationMiddleware.updateProfile, authCon
  *           schema:
  *             $ref: '#/components/schemas/ChangePasswordRequest'
  *           example:
- *             currentPassword: currentPassword123
- *             newPassword: newSecurePassword123
+ *             currentPassword: CurrentPass2024!
+ *             newPassword: NewSecurePass2024!
  *     responses:
  *       200:
  *         description: Password changed successfully
