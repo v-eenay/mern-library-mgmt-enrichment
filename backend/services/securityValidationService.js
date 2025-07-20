@@ -194,7 +194,7 @@ class SecurityValidationService {
 
     // Check for common weak passwords
     const commonPasswords = [
-      'password', '123456', 'password123', 'admin', 'qwerty',
+      'password', '123456', 'pass123', 'admin', 'qwerty',
       'letmein', 'welcome', 'monkey', '1234567890'
     ];
 

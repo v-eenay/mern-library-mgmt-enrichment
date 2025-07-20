@@ -57,9 +57,9 @@ For local development, use passwords that are:
 - Different from any production passwords
 
 Example pattern (replace with your own):
-- Admin: `DevAdmin[Year]!`
-- Librarian: `DevLib[Year]!`
-- Borrower: `DevUser[Year]!`
+- Admin: `AdminPass[Year]!`
+- Librarian: `LibrarianPass[Year]!`
+- Borrower: `BorrowerPass[Year]!`
 
 ### 5. Start Development
 
