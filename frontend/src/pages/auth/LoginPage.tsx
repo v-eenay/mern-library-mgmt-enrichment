@@ -39,11 +39,11 @@ const LoginPage = () => {
 
   const fillDemoCredentials = (role: 'admin' | 'librarian' | 'borrower') => {
     const credentials = {
-      admin: { email: import.meta.env.VITE_DEMO_ADMIN_EMAIL, password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD },
-      librarian: { email: import.meta.env.VITE_DEMO_LIBRARIAN_EMAIL, password: import.meta.env.VITE_DEMO_LIBRARIAN_PASSWORD },
-      borrower: { email: import.meta.env.VITE_DEMO_BORROWER_EMAIL, password: import.meta.env.VITE_DEMO_BORROWER_PASSWORD }
+      admin: { email: 'admin@library.com', password: '' },
+      librarian: { email: 'librarian@library.com', password: '' },
+      borrower: { email: 'borrower@library.com', password: '' }
     }
-    
+
     setValue('email', credentials[role].email)
     setValue('password', credentials[role].password)
   }

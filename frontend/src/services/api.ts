@@ -26,6 +26,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for cookie-based auth
+  timeout: 10000, // 10 second timeout
 })
 
 // Request interceptor to add auth token

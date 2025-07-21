@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { borrowsApi, booksApi, usersApi } from '@/services/api'
 import { 
   BookOpen, 
@@ -17,24 +17,24 @@ const DashboardPage = () => {
   const { user, isLibrarian } = useAuth()
 
   // Fetch user's borrows if they're a borrower
-  const { data: myBorrowsData, isLoading: borrowsLoading } = useQuery(
-    'my-borrows',
-    () => borrowsApi.getMyBorrows({ limit: 5 }),
-    { enabled: !isLibrarian }
-  )
+  const { data: myBorrowsData, isLoading: borrowsLoading } = useQuery({
+    queryKey: ['my-borrows'],
+    queryFn: () => borrowsApi.getMyBorrows({ limit: 5 }),
+    enabled: !isLibrarian
+  })
 
   // Fetch system stats if they're a librarian
-  const { data: borrowStatsData } = useQuery(
-    'borrow-stats',
-    () => borrowsApi.getBorrowStats(),
-    { enabled: isLibrarian }
-  )
+  const { data: borrowStatsData } = useQuery({
+    queryKey: ['borrow-stats'],
+    queryFn: () => borrowsApi.getBorrowStats(),
+    enabled: isLibrarian
+  })
 
-  const { data: userStatsData } = useQuery(
-    'user-stats',
-    () => usersApi.getUserStats(),
-    { enabled: isLibrarian }
-  )
+  const { data: userStatsData } = useQuery({
+    queryKey: ['user-stats'],
+    queryFn: () => usersApi.getUserStats(),
+    enabled: isLibrarian
+  })
 
   const myBorrows = myBorrowsData?.data.data.borrows || []
   const borrowStats = borrowStatsData?.data.data

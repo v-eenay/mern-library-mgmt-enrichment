@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Filter, BookOpen, Plus, Star } from 'lucide-react'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { booksApi, categoriesApi } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -16,16 +16,16 @@ const BooksPage = () => {
     sortOrder: 'desc'
   })
 
-  const { data: booksData, isLoading: booksLoading } = useQuery(
-    ['books', searchParams],
-    () => booksApi.getBooks(searchParams),
-    { keepPreviousData: true }
-  )
+  const { data: booksData, isLoading: booksLoading } = useQuery({
+    queryKey: ['books', searchParams],
+    queryFn: () => booksApi.getBooks(searchParams),
+    placeholderData: (previousData) => previousData
+  })
 
-  const { data: categoriesData } = useQuery(
-    'categories',
-    () => categoriesApi.getCategories()
-  )
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.getCategories()
+  })
 
   const books = booksData?.data.data || []
   const pagination = booksData?.data.pagination
