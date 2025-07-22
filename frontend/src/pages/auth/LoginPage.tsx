@@ -31,7 +31,7 @@ const LoginPage = () => {
       toast.success('Welcome back!', 'You have been successfully logged in.')
       navigate(from, { replace: true })
     } catch (error: any) {
-      toast.error('Login Failed', error.response?.data?.message || 'Invalid credentials')
+      toast.error('Login Failed', error.message || 'Invalid credentials')
     } finally {
       setLoading(false)
     }
@@ -39,11 +39,11 @@ const LoginPage = () => {
 
   const fillDemoCredentials = (role: 'admin' | 'librarian' | 'borrower') => {
     const credentials = {
-      admin: { email: import.meta.env.VITE_DEMO_ADMIN_EMAIL, password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD },
-      librarian: { email: import.meta.env.VITE_DEMO_LIBRARIAN_EMAIL, password: import.meta.env.VITE_DEMO_LIBRARIAN_PASSWORD },
-      borrower: { email: import.meta.env.VITE_DEMO_BORROWER_EMAIL, password: import.meta.env.VITE_DEMO_BORROWER_PASSWORD }
+      admin: { email: 'admin@library.com', password: 'DevAdmin2024!' },
+      librarian: { email: 'librarian@library.com', password: 'DevLibrarian2024!' },
+      borrower: { email: 'borrower@library.com', password: 'DevBorrower2024!' }
     }
-    
+
     setValue('email', credentials[role].email)
     setValue('password', credentials[role].password)
   }
