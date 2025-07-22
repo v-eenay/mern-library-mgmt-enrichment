@@ -1,10 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Filter, BookOpen, Plus, Star } from 'lucide-react'
-import { useQuery } from 'react-query'
-import { booksApi, categoriesApi } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import type { Book, BookSearchParams } from '@/types'
 
 const BooksPage = () => {
@@ -16,20 +13,145 @@ const BooksPage = () => {
     sortOrder: 'desc'
   })
 
-  const { data: booksData, isLoading: booksLoading } = useQuery(
-    ['books', searchParams],
-    () => booksApi.getBooks(searchParams),
-    { keepPreviousData: true }
-  )
+  // Static categories data
+  const categories = [
+    { _id: '1', name: 'Fiction' },
+    { _id: '2', name: 'Non-Fiction' },
+    { _id: '3', name: 'Science Fiction' },
+    { _id: '4', name: 'Mystery' },
+    { _id: '5', name: 'Biography' },
+    { _id: '6', name: 'History' },
+    { _id: '7', name: 'Self-Help' },
+    { _id: '8', name: 'Fantasy' }
+  ]
 
-  const { data: categoriesData } = useQuery(
-    'categories',
-    () => categoriesApi.getCategories()
-  )
+  // Static books data with online images
+  const staticBooks: Book[] = [
+    {
+      _id: '1',
+      title: 'To Kill a Mockingbird',
+      author: 'Harper Lee',
+      description: 'A classic novel about racial injustice in the American South.',
+      ISBN: '9780061120084',
+      category: 'Fiction',
+      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=687&auto=format&fit=crop',
+      available: 5,
+      total: 8,
+      averageRating: 4.8,
+      totalReviews: 120,
+      createdAt: '2023-01-15T00:00:00.000Z',
+      updatedAt: '2023-01-15T00:00:00.000Z'
+    },
+    {
+      _id: '2',
+      title: '1984',
+      author: 'George Orwell',
+      description: 'A dystopian novel set in a totalitarian society.',
+      ISBN: '9780451524935',
+      category: 'Science Fiction',
+      coverImage: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=688&auto=format&fit=crop',
+      available: 0,
+      total: 6,
+      averageRating: 4.6,
+      totalReviews: 98,
+      createdAt: '2023-02-10T00:00:00.000Z',
+      updatedAt: '2023-02-10T00:00:00.000Z'
+    },
+    {
+      _id: '3',
+      title: 'The Great Gatsby',
+      author: 'F. Scott Fitzgerald',
+      description: 'A novel about the American Dream in the 1920s.',
+      ISBN: '9780743273565',
+      category: 'Fiction',
+      coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=687&auto=format&fit=crop',
+      available: 3,
+      total: 7,
+      averageRating: 4.3,
+      totalReviews: 85,
+      createdAt: '2023-03-05T00:00:00.000Z',
+      updatedAt: '2023-03-05T00:00:00.000Z'
+    },
+    {
+      _id: '4',
+      title: 'Sapiens: A Brief History of Humankind',
+      author: 'Yuval Noah Harari',
+      description: 'A book exploring the history and impact of Homo sapiens.',
+      ISBN: '9780062316097',
+      category: 'Non-Fiction',
+      coverImage: 'https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=1476&auto=format&fit=crop',
+      available: 2,
+      total: 5,
+      averageRating: 4.7,
+      totalReviews: 110,
+      createdAt: '2023-04-20T00:00:00.000Z',
+      updatedAt: '2023-04-20T00:00:00.000Z'
+    },
+    {
+      _id: '5',
+      title: 'The Hobbit',
+      author: 'J.R.R. Tolkien',
+      description: 'A fantasy novel about the adventures of Bilbo Baggins.',
+      ISBN: '9780547928227',
+      category: 'Fantasy',
+      coverImage: 'https://images.unsplash.com/photo-1629992101753-56d196c8aabb?q=80&w=690&auto=format&fit=crop',
+      available: 4,
+      total: 10,
+      averageRating: 4.9,
+      totalReviews: 150,
+      createdAt: '2023-05-12T00:00:00.000Z',
+      updatedAt: '2023-05-12T00:00:00.000Z'
+    },
+    {
+      _id: '6',
+      title: 'Becoming',
+      author: 'Michelle Obama',
+      description: 'A memoir by the former First Lady of the United States.',
+      ISBN: '9781524763138',
+      category: 'Biography',
+      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=687&auto=format&fit=crop',
+      available: 1,
+      total: 4,
+      averageRating: 4.5,
+      totalReviews: 95,
+      createdAt: '2023-06-08T00:00:00.000Z',
+      updatedAt: '2023-06-08T00:00:00.000Z'
+    }
+  ]
 
-  const books = booksData?.data.data || []
-  const pagination = booksData?.data.pagination
-  const categories = categoriesData?.data.data.categories || []
+  // Filter books based on search params (simplified)
+  const books = staticBooks.filter(book => {
+    // Filter by category if specified
+    if (searchParams.category && book.category !== searchParams.category) {
+      return false
+    }
+
+    // Filter by availability if specified
+    if (searchParams.available !== undefined) {
+      if (searchParams.available && book.available <= 0) return false
+      if (!searchParams.available && book.available > 0) return false
+    }
+
+    // Filter by search query if specified
+    if (searchParams.q) {
+      const query = searchParams.q.toLowerCase()
+      return (
+        book.title.toLowerCase().includes(query) ||
+        book.author.toLowerCase().includes(query) ||
+        book.ISBN.includes(query)
+      )
+    }
+
+    return true
+  })
+
+  // Pagination data
+  const pagination = {
+    page: searchParams.page || 0,
+    limit: searchParams.limit || 12,
+    total: books.length,
+    pages: Math.ceil(books.length / (searchParams.limit || 12))
+  }
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -179,11 +301,7 @@ const BooksPage = () => {
       </div>
 
       {/* Books Grid */}
-      {booksLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <LoadingSpinner size="large" />
-        </div>
-      ) : books.length > 0 ? (
+      {books.length > 0 ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
             {books.map((book: Book) => (

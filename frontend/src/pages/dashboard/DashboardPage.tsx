@@ -1,44 +1,72 @@
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'react-query'
-import { borrowsApi, booksApi, usersApi } from '@/services/api'
-import { 
-  BookOpen, 
-  Users, 
-  Clock, 
-  CheckCircle, 
+import {
+  BookOpen,
+  Users,
+  Clock,
+  CheckCircle,
   AlertCircle,
   TrendingUp,
   Calendar,
   Star
 } from 'lucide-react'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 const DashboardPage = () => {
   const { user, isLibrarian } = useAuth()
 
-  // Fetch user's borrows if they're a borrower
-  const { data: myBorrowsData, isLoading: borrowsLoading } = useQuery(
-    'my-borrows',
-    () => borrowsApi.getMyBorrows({ limit: 5 }),
-    { enabled: !isLibrarian }
-  )
+  // Static data for librarian dashboard
+  const borrowStats = {
+    totalBooks: 1247,
+    activeBorrows: 89,
+    overdueBorrows: 12,
+    newBooksThisMonth: 23,
+    popularCategory: 'Fiction'
+  }
 
-  // Fetch system stats if they're a librarian
-  const { data: borrowStatsData } = useQuery(
-    'borrow-stats',
-    () => borrowsApi.getBorrowStats(),
-    { enabled: isLibrarian }
-  )
+  const userStats = {
+    totalUsers: 456,
+    newUsersThisMonth: 18,
+    activeBorrowers: 234
+  }
 
-  const { data: userStatsData } = useQuery(
-    'user-stats',
-    () => usersApi.getUserStats(),
-    { enabled: isLibrarian }
-  )
-
-  const myBorrows = myBorrowsData?.data.data.borrows || []
-  const borrowStats = borrowStatsData?.data.data
-  const userStats = userStatsData?.data.data
+  // Static data for borrower dashboard
+  const myBorrows = [
+    {
+      _id: '1',
+      bookId: {
+        _id: '1',
+        title: 'To Kill a Mockingbird',
+        author: 'Harper Lee',
+        coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=687&auto=format&fit=crop'
+      },
+      borrowDate: '2024-01-15T00:00:00.000Z',
+      dueDate: '2024-02-15T00:00:00.000Z',
+      status: 'active'
+    },
+    {
+      _id: '2',
+      bookId: {
+        _id: '2',
+        title: 'The Great Gatsby',
+        author: 'F. Scott Fitzgerald',
+        coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=687&auto=format&fit=crop'
+      },
+      borrowDate: '2023-12-20T00:00:00.000Z',
+      dueDate: '2024-01-10T00:00:00.000Z',
+      status: 'overdue'
+    },
+    {
+      _id: '3',
+      bookId: {
+        _id: '3',
+        title: 'Sapiens',
+        author: 'Yuval Noah Harari',
+        coverImage: 'https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=1476&auto=format&fit=crop'
+      },
+      borrowDate: '2023-11-01T00:00:00.000Z',
+      dueDate: '2023-12-01T00:00:00.000Z',
+      status: 'returned'
+    }
+  ]
 
   const StatCard = ({ 
     title, 
@@ -78,13 +106,7 @@ const DashboardPage = () => {
     )
   }
 
-  if (borrowsLoading && !isLibrarian) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="large" />
-      </div>
-    )
-  }
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
